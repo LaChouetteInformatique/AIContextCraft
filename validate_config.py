@@ -23,7 +23,7 @@ def validate_configuration(config_path: str = "config.yaml"):
         if config_mgr.is_advanced_format():
             # Validate the advanced configuration
             concat_config = config_mgr.get_concat_config()
-            tree_config = config_mgr.get_tree_config(full_tree=True)
+            tree_config = config_mgr.get_tree_config(mode='full')
             
             print("\n📦 Concatenation configuration:")
             print(f"  Mode: {concat_config.get('mode', 'not set')}")
