@@ -6,12 +6,14 @@ Supports multiple tokenization methods with fallback
 
 from typing import Optional, Dict, Tuple
 import logging
+from .dependency_manager import DependencyManager
 
 class TokenEstimator:
     """Estimates token count for different LLM models"""
     
     def __init__(self):
-        self.tiktoken_available = self._check_tiktoken()
+        dep_manager = DependencyManager()
+        self.tiktoken_available = dep_manager.check_tiktoken()
         self.encoder = None
         self.model_limits = {
             'gpt-4': 8192,

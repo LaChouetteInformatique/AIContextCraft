@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Clipboard utility for AI Context Craft
-Cross-platform clipboard support with auto-detection
+Cross-platform clipboard support with dependency management integration
 """
 
 import subprocess
@@ -14,23 +14,28 @@ from typing import Optional
 class ClipboardManager:
     """Manages clipboard operations across different platforms"""
     
-    def __init__(self, auto_install=False):
+    def __init__(self):
         self.system = platform.system()
-        self.clipboard_available = self._check_clipboard_availability()
-        self.auto_install = auto_install
         
-        # Try to auto-install if requested and not available
-        if not self.clipboard_available and self.auto_install and self.system == "Linux":
-            self._try_auto_install()
-            # Re-check availability after installation attempt
-            self.clipboard_available = self._check_clipboard_availability()
+        # For Linux, check/install clipboard tools via dependency manager
+        if self.system == "Linux" and not self._check_clipboard_availability():
+            try:
+                from .dependency_manager import DependencyManager
+                dep_manager = DependencyManager()
+                dep_manager.check_clipboard_tools()
+            except ImportError:
+                # Dependency manager not available, continue without it
+                pass
+        
+        # Re-check availability after potential installation
+        self.clipboard_available = self._check_clipboard_availability()
     
     def _check_clipboard_availability(self) -> bool:
         """Checks if clipboard tools are available"""
         if self.system == "Darwin":  # macOS
             return self._command_exists("pbcopy")
         elif self.system == "Linux":
-            # Also check if we're in SSH or headless environment
+            # Check if we're in SSH or headless environment
             if not os.environ.get('DISPLAY'):
                 return False  # No X11 display available
             return self._command_exists("xclip") or self._command_exists("xsel")
@@ -74,50 +79,7 @@ class ClipboardManager:
             pass
         
         return None
-    
-    def _try_auto_install(self):
-        """Attempts to automatically install clipboard support"""
-        print("📋 Clipboard support not found. Attempting to install...")
-        
-        pm = self._detect_package_manager()
-        if not pm:
-            print("❌ Could not detect package manager")
-            return False
-        
-        install_commands = {
-            'apt-get': ['sudo', 'apt-get', 'install', '-y', 'xclip'],
-            'dnf': ['sudo', 'dnf', 'install', '-y', 'xclip'],
-            'yum': ['sudo', 'yum', 'install', '-y', 'xclip'],
-            'pacman': ['sudo', 'pacman', '-S', '--noconfirm', 'xclip'],
-            'zypper': ['sudo', 'zypper', 'install', '-y', 'xclip']
-        }
-        
-        if pm not in install_commands:
-            return False
-        
-        try:
-            # Check if we have sudo rights
-            if os.geteuid() != 0:  # Not root
-                print(f"📦 Installing xclip using {pm}...")
-                print("   Note: This requires sudo password")
-            
-            result = subprocess.run(
-                install_commands[pm],
-                capture_output=False,
-                text=True
-            )
-            
-            if result.returncode == 0:
-                print("✅ xclip installed successfully!")
-                return True
-            else:
-                print("❌ Installation failed")
-                return False
-                
-        except Exception as e:
-            print(f"❌ Installation error: {e}")
-            return False
-    
+
     def copy_to_clipboard(self, text: str) -> bool:
         """
         Copies text to the system clipboard
@@ -202,7 +164,7 @@ class ClipboardManager:
         return "Clipboard status unknown"
     
     def test_clipboard(self) -> bool:
-        """Tests if clipboard is working by copying and verifying a test string"""
+        """Tests if clipboard is working"""
         test_string = "AI Context Craft clipboard test"
         
         if not self.clipboard_available:
@@ -210,7 +172,6 @@ class ClipboardManager:
             return False
         
         try:
-            # Try to copy
             if self.copy_to_clipboard(test_string):
                 print(f"✅ Clipboard is working! ({self.get_clipboard_info()})")
                 return True
@@ -221,11 +182,9 @@ class ClipboardManager:
             print(f"❌ Clipboard test error: {e}")
             return False
 
-
 # Utility function for testing
 if __name__ == "__main__":
-    # Test the clipboard
-    clipboard = ClipboardManager(auto_install=False)  # Set to True to attempt auto-install
+    clipboard = ClipboardManager()
     
     print(f"System: {clipboard.system}")
     print(f"Available: {clipboard.clipboard_available}")
@@ -235,5 +194,5 @@ if __name__ == "__main__":
         print("\nTesting clipboard...")
         clipboard.test_clipboard()
     else:
-        print("\n💡 To enable clipboard support:")
+        print(f"\n💡 To enable clipboard support:")
         print(f"   {clipboard.get_clipboard_info()}")

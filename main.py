@@ -42,7 +42,16 @@ def main():
         action="store_true",
         help="Include Git tracked files and untracked files"
     )
-
+    parser.add_argument(
+        "--reset-deps",
+        action="store_true",
+        help="Reset dependency installation preferences"
+    )
+    parser.add_argument(
+        "--show-deps",
+        action="store_true",
+        help="Show current dependency preferences"
+    )
     tree_group = parser.add_mutually_exclusive_group()
     tree_group.add_argument(
         "--with-tree", 
@@ -107,8 +116,17 @@ def main():
     )
     
     args = parser.parse_args()
+
+    if args.reset_deps:
+        from utils.dependency_manager import DependencyManager
+        DependencyManager().reset_preferences()
+        sys.exit(0)
+
+    if args.show_deps:
+        from utils.dependency_manager import DependencyManager
+        DependencyManager().show_preferences()
+        sys.exit(0)
     
-    # On instancie la classe importée
     craft = AIContextCraft(args.config, args.source)
     
     if args.mode:
