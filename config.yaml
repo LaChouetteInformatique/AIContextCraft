@@ -1,0 +1,123 @@
+# Configuration for file concatenation (main section)
+concat_project_files:
+  mode: "include"
+  include:
+    - "**/*.py"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.md"
+    - "**/*.yaml"
+    - "**/*.yml"
+    - "**/*.json"
+    - "**/*.sh"
+    - "**/*.bash"
+    - "**/*.css"
+    - "**/*.scss"
+    - "**/*.html"
+    - "Dockerfile"
+    - "Makefile"
+  exclude:
+    - "venv/**"
+    - ".venv/**"
+    - "node_modules/**"
+    - "__pycache__/**"
+    - "*.pyc"
+    - "build/**"
+    - "dist/**"
+    - ".git/**"
+    - "*.log"
+    - ".env*"
+    - "*.min.js"
+    - "*.min.css"
+
+# Configuration for the full tree (very permissive)
+# Used with --with-tree-full
+tree_project_files:
+  mode: "exclude"
+  exclude:
+    # Only essential system folders
+    - "venv/**"
+    - ".venv/**"
+    - "node_modules/**"
+    - "__pycache__/**"
+    - ".git/**"
+    - "*.pyc"
+    - ".env"
+    - "*.log"
+    - ".pytest_cache/**"
+
+# Configuration for the custom tree (intermediate)
+# Used with --with-tree-custom
+custom_tree_files:
+  mode: "exclude"  
+  exclude:
+    # System folders
+    - "venv/**"
+    - ".venv/**"
+    - "node_modules/**"
+    - "__pycache__/**"
+    - ".git/**"
+    - ".pytest_cache/**"
+    
+    # Build and dist files
+    - "build/**"
+    - "dist/**"
+    - "coverage/**"
+    
+    # Temporary files and logs
+    - "*.pyc"
+    - "*.pyo"
+    - "*.log"
+    - "*.tmp"
+    - "*.temp"
+    
+    # Minified files
+    - "*.min.js"
+    - "*.min.css"
+    
+    # Large binary files
+    - "*.exe"
+    - "*.dll"
+    - "*.so"
+    - "*.dylib"
+    
+    # Environment
+    - ".env"
+    - ".env.*"
+
+    # tests
+    - "test_*.py"
+    
+# Legacy configuration (for backward compatibility)
+include_extensions:
+  - .py
+  - .js
+  - .jsx
+  - .ts
+  - .tsx
+  - .md
+  - .yaml
+  - .yml
+  - .json
+  - .sh
+  - .bash
+
+exclude_dirs:
+  - venv
+  - .venv
+  - node_modules
+  - __pycache__
+  - .git
+  - build
+  - dist
+  - .pytest_cache
+
+exclude_files:
+  - .env
+  - .env.local
+  - package-lock.json
+  - yarn.lock
+  - .DS_Store
+  - Thumbs.db
