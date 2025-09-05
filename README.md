@@ -2,81 +2,81 @@
 
 # AI Context Craft 🤖
 
-**AI Context Craft** est un outil en ligne de commande puissant et configurable pour agréger des fichiers de code source en un seul fichier texte. Il est conçu pour préparer facilement des contextes de projet complets à fournir aux grands modèles de langage (LLM) comme Gemini, GPT, etc.
+**AI Context Craft** is a powerful and configurable command-line tool for aggregating source code files into a single text file. It is designed to easily prepare complete project contexts to be fed into large language models (LLMs) like Gemini, GPT, etc.
 
-## ✨ Fonctionnalités
+## ✨ Features
 
--   **Concaténation de fichiers** : Combine de manière sélective les fichiers de votre projet en un seul contexte.
--   **Filtrage avancé** : Utilise des patterns de style `.gitignore` pour inclure ou exclure finement des fichiers et des dossiers (grâce à `pathspec`).
--   **Génération d'arborescence** : Inclut automatiquement une représentation en arbre de la structure de votre projet pour donner plus de contexte au LLM.
--   **Modes d'arborescence multiples** :
-    -   `--with-tree` : Arbre basé sur les mêmes filtres que la concaténation.
-    -   `--with-tree-full` : Arbre complet du projet (avec des exclusions minimales).
-    -   `--with-tree-custom` : Arbre basé sur une configuration personnalisée.
--   **Suppression des commentaires** : Option `--strip-comments` pour nettoyer le code et économiser des tokens (grâce à `tree-sitter`).
--   **Configuration flexible** : Gérez vos filtres via un fichier `concat-config.yaml` pour une réutilisation facile.
--   **Validation de configuration** : Une commande pour vérifier que votre configuration est valide.
+-   **File Concatenation**: Selectively combines your project's files into a single context.
+-   **Advanced Filtering**: Uses `.gitignore`-style patterns to finely include or exclude files and folders (thanks to `pathspec`).
+-   **Tree Generation**: Automatically includes a tree representation of your project structure to give the LLM more context.
+-   **Multiple Tree Modes**:
+    -   `--with-tree`: Tree based on the same filters as the concatenation.
+    -   `--with-tree-full`: Full project tree (with minimal exclusions).
+    -   `--with-tree-custom`: Tree based on a custom configuration.
+-   **Comment Stripping**: `--strip-comments` option to clean up code and save tokens (thanks to `tree-sitter`).
+-   **Flexible Configuration**: Manage your filters via a `concat-config.yaml` file for easy reuse.
+-   **Configuration Validation**: A command to check that your configuration is valid.
 
 ## 🚀 Installation
 
-Le script d'installation mettra en place un environnement virtuel Python et installera toutes les dépendances nécessaires.
+The installation script will set up a Python virtual environment and install all necessary dependencies.
 
 ```bash
-# Clonez le projet (si ce n'est pas déjà fait)
-git clone https://github.com/VOTRE_NOM/ai-context-craft.git
+# Clone the project (if you haven't already)
+git clone https://github.com/YOUR_USERNAME/ai-context-craft.git
 cd ai-context-craft
 
-# Lancez le script d'installation
+# Run the installation script
 bash install.sh
 ```
 
-## 📖 Utilisation
+## 📖 Usage
 
-Après l'installation, assurez-vous d'activer l'environnement virtuel avant d'utiliser l'outil.
+After installation, make sure to activate the virtual environment before using the tool.
 
 ```bash
 source venv/bin/activate
 ```
 
-### Commandes de base
+### Basic Commands
 
 ```bash
-# Concaténer les fichiers du répertoire courant (sortie dans build/)
+# Concatenate files in the current directory (output in build/)
 ./run.sh
 
-# Traiter un autre répertoire
-./run.sh ../mon-autre-projet
+# Process another directory
+./run.sh ../my-other-project
 
-# Spécifier un fichier de sortie
-./run.sh -o ./output/contexte_projet.txt
+# Specify an output file
+./run.sh -o ./output/project_context.txt
 ```
 
-### Options populaires
+### Popular Options
 
 ```bash
-# Inclure une arborescence du projet dans la sortie
+# Include a project tree in the output
 ./run.sh --with-tree
 
-# Inclure une arborescence plus complète
+# Include a more complete tree
 ./run.sh --with-tree-full
 
-# Supprimer tous les commentaires du code
+# Strip all comments from the code
 ./run.sh --strip-comments
 
-# Combiner les options
+# Combine options
 ./run.sh --with-tree --strip-comments
 ```
 
-### Générer uniquement l'arborescence
+### Generate Tree Only
 
 ```bash
-# Générer l'arborescence seule en utilisant la configuration 'full'
+# Generate the tree only using the 'full' configuration
 ./run.sh --tree-only --tree-mode full -o project-tree.txt
 ```
 
-### Valider la configuration
+### Validate Configuration
 
-Avant de lancer une grosse concaténation, vous pouvez valider votre fichier `concat-config.yaml`.
+Before running a large concatenation, you can validate your `concat-config.yaml` file.
 
 ```bash
 ./validate_config.py
@@ -84,53 +84,52 @@ Avant de lancer une grosse concaténation, vous pouvez valider votre fichier `co
 
 ## ⚙️ Configuration (`concat-config.yaml`)
 
-Créez un fichier `concat-config.yaml` à la racine de votre projet pour contrôler précisément quels fichiers sont inclus.
+Create a `concat-config.yaml` file at the root of your project to precisely control which files are included.
 
-**Exemple de configuration (mode exclusion) :**
+**Example Configuration (exclude mode):**
 
 ```yaml
-# Fichier: concat-config.yaml
+# File: concat-config.yaml
 
 concat_project_files:
-  # En mode 'exclude', tout est inclus sauf ce qui est listé ci-dessous.
+  # In 'exclude' mode, everything is included except what is listed below.
   mode: exclude
   exclude:
-    # Dossiers complets
+    # Entire folders
     - 'node_modules/'
     - 'build/'
     - 'dist/'
     - '.venv/'
     - '__pycache__/'
     - '.git/'
-    # Fichiers par nom ou pattern
+    # Files by name or pattern
     - '*.log'
     - '*.lock'
     - '.env'
     - 'data/*'
 ```
 
-**Exemple de configuration (mode inclusion) :**
+**Example Configuration (include mode):**
 
 ```yaml
-# Fichier: concat-config.yaml
+# File: concat-config.yaml
 
 concat_project_files:
-  # En mode 'include', rien n'est inclus sauf ce qui est listé ci-dessous.
+  # In 'include' mode, nothing is included except what is listed below.
   mode: include
   include:
-    - 'src/**/*.py'      # Tous les fichiers Python dans src
-    - 'src/**/*.js'       # Tous les fichiers JS dans src
-    - 'tests/*.py'        # Les fichiers de test à la racine de tests/
-    - 'README.md'         # Le README principal
+    - 'src/**/*.py'      # All Python files in src
+    - 'src/**/*.js'       # All JS files in src
+    - 'tests/*.py'        # Test files at the root of tests/
+    - 'README.md'         # The main README
     - 'requirements.txt'
 ```
 
 
-## 📜 Licence
+## 📜 License
 
-Ce projet est dédié au **domaine public** via la licence [Creative Commons Zero (CC0) 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
+This project is dedicated to the **public domain** via the [Creative Commons Zero (CC0) 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) license.
 
-Vous êtes libre de copier, modifier, distribuer et exécuter le travail, même à des fins commerciales, sans demander la permission.
-
+You are free to copy, modify, distribute, and perform the work, even for commercial purposes, all without asking permission.
 
 ---
