@@ -2,6 +2,7 @@
 from typing import Dict, Any
 from collections import defaultdict
 from pathlib import Path
+from .token_estimator import TokenEstimator
 
 class StatsCollector:
     """Collects and displays statistics"""
@@ -46,7 +47,19 @@ class StatsCollector:
         # Token estimation
         estimated_tokens = self.stats['total_size'] // 4
         lines.append(f"🔤 Estimated tokens: ~{estimated_tokens:,}")
+
         
+        # 🆕 Improved token estimate
+        if hasattr(self, 'token_estimator'):
+            # Get all content for better estimate
+            total_content = "\n".join([f['content'] for f in result['files']])
+            estimation = self.token_estimator.estimate_tokens(total_content)
+            lines.append("")
+            lines.append(self.token_estimator.format_summary(estimation, include_models=False))
+        else:
+            estimated_tokens = self.stats['total_size'] // 4
+            lines.append(f"🔤 Estimated tokens: ~{estimated_tokens:,} (rough estimate)")
+
         # Breakdown by type if more than one type
         if len(self.file_types) > 1:
             lines.append("\n📈 Breakdown by type:")

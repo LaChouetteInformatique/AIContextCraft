@@ -8,6 +8,7 @@ from .tree_generator import TreeGenerator
 from .pattern_matcher import PatternMatcher
 from .stats_utils import StatsCollector
 from .comment_stripper import CommentStripper
+from .clipboard_manager import ClipboardManager
 
 __all__ = [
     'ConfigManager',
@@ -15,5 +16,6 @@ __all__ = [
     'TreeGenerator',
     'PatternMatcher',
     'StatsCollector',
-    'CommentStripper'
+    'CommentStripper',
+    'ClipboardManager'
 ]

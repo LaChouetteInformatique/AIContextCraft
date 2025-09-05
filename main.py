@@ -32,6 +32,17 @@ def main():
     
     parser.add_argument("-o", "--output", help="Output file")
     
+    parser.add_argument(
+        "--git-only",
+        action="store_true",
+        help="Only include files tracked by Git"
+    )
+    parser.add_argument(
+        "--git-all",
+        action="store_true",
+        help="Include Git tracked files and untracked files"
+    )
+
     tree_group = parser.add_mutually_exclusive_group()
     tree_group.add_argument(
         "--with-tree", 
@@ -66,6 +77,13 @@ def main():
         action="store_true", 
         help="Remove comments from the code"
     )
+
+    parser.add_argument(
+        "--to-clipboard", 
+        action="store_true", 
+        help="Copy the result to clipboard"
+    )
+
     parser.add_argument(
         "--no-timestamp", 
         action="store_true", 
@@ -106,13 +124,21 @@ def main():
             tree_mode = 'full'
         elif args.with_tree_custom:
             tree_mode = 'custom'
+
+        git_mode = None
+        if args.git_only:
+            git_mode = 'tracked'
+        elif args.git_all:
+            git_mode = 'all'
         
         craft.concat_files(
             output_file=args.output, 
             tree_mode=tree_mode,
             debug=args.debug,
             strip_comments=args.strip_comments,
-            no_timestamp=args.no_timestamp
+            no_timestamp=args.no_timestamp,
+            to_clipboard=args.to_clipboard,
+            git_mode=git_mode
         )
 
 if __name__ == "__main__":

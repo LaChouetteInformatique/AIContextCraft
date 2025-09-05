@@ -37,10 +37,46 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Installing tree-sitter grammars
+# Installing tree-sitter grammars dynamically
 echo "🌳 Installing grammars for code analysis..."
-python -c "from tree_sitter_languages import get_parser; get_parser('python')"
-# You can add other languages here if needed, e.g., get_parser('javascript')
+
+# Extract supported languages from comment_stripper.py
+python3 << 'EOF'
+import sys
+import re
+from pathlib import Path
+
+# Read the comment_stripper.py file
+stripper_path = Path("utils/comment_stripper.py")
+if not stripper_path.exists():
+    print("Warning: comment_stripper.py not found")
+    sys.exit(0)
+
+content = stripper_path.read_text()
+
+# Extract language mappings using regex
+pattern = r"'\.[\w]+': '([\w]+)'"
+languages = set(re.findall(pattern, content))
+
+# Remove duplicates and try to install each grammar
+installed = []
+failed = []
+
+for lang in sorted(languages):
+    try:
+        from tree_sitter_languages import get_parser
+        get_parser(lang)
+        installed.append(lang)
+        print(f"  ✅ {lang}")
+    except Exception as e:
+        failed.append(lang)
+        print(f"  ⚠️  {lang} (not available or already installed)")
+
+if installed:
+    print(f"\n✨ Successfully prepared {len(installed)} language grammars")
+if failed:
+    print(f"📝 Note: {len(failed)} grammars were not available (this is normal)")
+EOF
 
 # Creating build directory if it doesn't exist
 if [ ! -d "build" ]; then

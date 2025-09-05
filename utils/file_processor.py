@@ -13,19 +13,33 @@ class FileProcessor:
         self.pattern_matcher = PatternMatcher(config_manager)
         self.comment_stripper = CommentStripper()
         self.logger: Optional[logging.Logger] = None
+        self.git_manager = None  # Will be set externally if needed
         
     def set_logger(self, logger: logging.Logger):
         """Configures the logger for this processor"""
         self.logger = logger
+        
+    def set_git_manager(self, git_manager):
+        """Sets the Git manager for Git-aware filtering"""
+        self.git_manager = git_manager
         
     def _log(self, message: str, level: str = "info"):
         """Logs a message if a logger is configured"""
         if self.logger:
             getattr(self.logger, level, self.logger.info)(message)
                 
-    def get_filtered_files(self, source_dir: str, debug: bool = False) -> List[Tuple[str, str]]:
+    def get_filtered_files(self, source_dir: str, debug: bool = False, 
+                          git_mode: str = None) -> List[Tuple[str, str]]:
         """
         Returns the list of filtered files according to the unified configuration.
+        
+        Args:
+            source_dir: Source directory path
+            debug: Enable debug logging
+            git_mode: Git filtering mode ('tracked', 'all', None)
+                     - 'tracked': Only Git-tracked files
+                     - 'all': Tracked + untracked files
+                     - None: No Git filtering
         
         Returns:
             List of tuples (absolute_path, relative_path)
@@ -45,6 +59,10 @@ class FileProcessor:
                 all_files.append((str(file_path), relative_path))
         
         self._log(f"📂 Total files found before filtering: {len(all_files)}")
+        
+        # Apply Git filtering if requested
+        if git_mode and self.git_manager:
+            all_files = self._apply_git_filtering(all_files, source_path, git_mode, debug)
         
         # Get the filtering configuration, which handles legacy mode internally
         config = self.config.get_concat_config()
@@ -72,6 +90,51 @@ class FileProcessor:
                     self._log(f"  [❌ EXCLUDED] {rel_path}", "debug")
         
         self._log(f"📊 Files after filtering: {len(filtered)}")
+        return filtered
+    
+    def _apply_git_filtering(self, all_files: List[Tuple[str, str]], 
+                           source_path: Path, git_mode: str, 
+                           debug: bool) -> List[Tuple[str, str]]:
+        """
+        Applies Git-based filtering to the file list
+        
+        Args:
+            all_files: List of (absolute_path, relative_path) tuples
+            source_path: Source directory path
+            git_mode: 'tracked' or 'all'
+            debug: Debug mode
+            
+        Returns:
+            Filtered list of files
+        """
+        if not self.git_manager or not self.git_manager.is_git_repo:
+            self._log("⚠️  Git filtering requested but not in a Git repository", "warning")
+            return all_files
+        
+        self._log(f"🔀 Applying Git filter: {git_mode}")
+        
+        # Get tracked files
+        tracked_files = set(self.git_manager.get_tracked_files(relative_to=source_path))
+        
+        if git_mode == 'all':
+            # Also include untracked files (but not ignored)
+            status = self.git_manager.get_status()
+            for untracked in status.get('untracked_files', []):
+                # Convert to forward slashes for consistency
+                tracked_files.add(untracked.replace('\\', '/'))
+        
+        # Filter the files
+        filtered = []
+        for abs_path, rel_path in all_files:
+            if rel_path in tracked_files:
+                filtered.append((abs_path, rel_path))
+                if debug:
+                    self._log(f"  [GIT ✅] {rel_path}", "debug")
+            else:
+                if debug:
+                    self._log(f"  [GIT ❌] {rel_path}", "debug")
+        
+        self._log(f"📊 Files after Git filtering: {len(filtered)} (was {len(all_files)})")
         return filtered
     
     def _get_skip_directories(self) -> set:
@@ -106,12 +169,24 @@ class FileProcessor:
             self._log(f"  ⚠️ No permission for: {path}", "warning")
 
     def process_directory(self, source_dir: str, debug: bool = False, 
-                         strip_comments: bool = False) -> Dict[str, Any]:
-        """Processes a directory, filters files, and reads their content."""
+                         strip_comments: bool = False,
+                         git_mode: str = None) -> Dict[str, Any]:
+        """
+        Processes a directory, filters files, and reads their content.
+        
+        Args:
+            source_dir: Source directory path
+            debug: Enable debug logging
+            strip_comments: Remove comments from code
+            git_mode: Git filtering mode ('tracked', 'all', None)
+            
+        Returns:
+            Dictionary with processed files data
+        """
         source_path = Path(source_dir).resolve()
         self._log(f"📂 Analyzing: {source_path}")
         
-        filtered_files = self.get_filtered_files(str(source_path), debug)
+        filtered_files = self.get_filtered_files(str(source_path), debug, git_mode)
         
         files_data = []
         total_size = 0
@@ -124,9 +199,17 @@ class FileProcessor:
                     content = f.read()
                 
                 if strip_comments:
+                    original_size = len(content)
                     content = self.comment_stripper.strip_comments(content, abs_path)
+                    if len(content) < original_size:
+                        self._log(f"  💬 Stripped comments from {rel_path} "
+                                f"({original_size} → {len(content)} bytes)", "debug")
                 
-                files_data.append({'path': rel_path, 'content': content, 'size': len(content)})
+                files_data.append({
+                    'path': rel_path, 
+                    'content': content, 
+                    'size': len(content)
+                })
                 total_size += len(content)
                 
             except Exception as e:
@@ -136,10 +219,22 @@ class FileProcessor:
         
         self._log(f"✅ Reading complete: {len(files_data)} files, {total_size:,} bytes")
         
+        # Add Git information if available
+        git_info = {}
+        if self.git_manager and self.git_manager.is_git_repo:
+            git_status = self.git_manager.get_status()
+            git_info = {
+                'is_git_repo': True,
+                'branch': git_status.get('branch', 'unknown'),
+                'has_changes': git_status.get('has_changes', False),
+                'git_mode': git_mode
+            }
+        
         return {
             'files': files_data,
             'file_count': len(files_data),
             'total_size': total_size,
             'source_dir': str(source_path),
-            'errors': errors
+            'errors': errors,
+            'git_info': git_info
         }
