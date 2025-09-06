@@ -1,0 +1,11 @@
+#!/bin/bash
+# Script de test simple - comme aicc mais pour les tests
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+if [ -f "venv/bin/python" ]; then
+    exec venv/bin/python -m pytest tests/ -v --tb=short "$@"
+else
+    echo "❌ Pas de venv. Lancer: python3 -m venv venv"
+    exit 1
+fi
