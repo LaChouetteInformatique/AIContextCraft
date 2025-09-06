@@ -1,0 +1,19 @@
+# requirements-test.txt - Test dependencies for AI Context Craft
+
+# Core application dependencies
+pyyaml>=6.0
+pathspec>=0.11.0
+tiktoken>=0.5.0
+tree-sitter>=0.20.0
+tree-sitter-languages>=1.8.0
+
+# Testing framework
+pytest>=7.4.0
+pytest-html>=3.2.0
+pytest-cov>=4.1.0
+pytest-xdist>=3.3.0  # For parallel test execution
+
+# Development tools (optional)
+ipython>=8.0.0  # Interactive Python shell
+black>=23.0.0   # Code formatting
+flake8>=6.0.0   # Linting
