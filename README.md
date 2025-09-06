@@ -2,8 +2,8 @@
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue?logo=python)](https://www.python.org/)
-<!-- [![Tests](https://img.shields.io/badge/Tests-Passing-green)](tests/README.md) -->
 [![License: CC0](https://img.shields.io/badge/License-CC0-lightgrey.svg)](LICENSE)
+<!-- [![Tests](https://img.shields.io/badge/Tests-Passing-green)](tests/README.md) -->
 
 > 🚀 **Transform your entire codebase into AI-ready context with a single command**
 
