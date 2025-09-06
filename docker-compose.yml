@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  aicontextcraft:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aicontextcraft:latest
+    container_name: aicraft
+    
+    # Environment variables
+    environment:
+      # For clipboard support through X11 (Linux only)
+      - DISPLAY=${DISPLAY}
+      # Git configuration
+      - GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME:-AI Context Craft}
+      - GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL:-aicraft@localhost}
+    
+    # Volumes
+    volumes:
+      # Mount current directory as input (read-only for safety)
+      - .:/app/input:ro
+      # Output directory for generated files
+      - ./build:/app/output
+      # Config file (if you want to use a custom one)
+      - ./concat-config.yaml:/app/concat-config.yaml:ro
+      # For clipboard support on Linux (X11 socket)
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      # Git credentials (optional, for git operations)
+      - ~/.gitconfig:/home/aicraft/.gitconfig:ro
+      - ~/.ssh:/home/aicraft/.ssh:ro
+    
+    # Network mode for clipboard access
+    network_mode: host
+    
+    # Working directory
+    working_dir: /app/input
+    
+    # Override entrypoint for easier usage
+    entrypoint: ["python", "/app/main.py"]
+    command: ["."]
+    
+    # Resource limits (optional)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # Development service with hot reload
+  aicontextcraft-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: aicontextcraft:dev
+    container_name: aicraft-dev
+    volumes:
+      # Mount source code for development
+      - .:/app
+      - ./build:/app/build
+    environment:
+      - PYTHONUNBUFFERED=1
+    working_dir: /app
+    command: ["python", "main.py", "--help"]
+    profiles:
+      - dev
+
+  # Service for running tests
+  aicontextcraft-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aicontextcraft:test
+    container_name: aicraft-test
+    volumes:
+      - .:/app:ro
+      - ./test-output:/app/build
+    working_dir: /app
+    entrypoint: ["python", "-m", "pytest"]
+    command: ["tests/", "-v"]
+    profiles:
+      - test

@@ -9,7 +9,6 @@ from .pattern_matcher import PatternMatcher
 from .stats_utils import StatsCollector
 from .comment_stripper import CommentStripper
 from .clipboard_manager import ClipboardManager
-from .dependency_manager import DependencyManager
 
 __all__ = [
     'ConfigManager',
@@ -19,5 +18,4 @@ __all__ = [
     'StatsCollector',
     'CommentStripper',
     'ClipboardManager',
-    'DependencyManager'
 ]

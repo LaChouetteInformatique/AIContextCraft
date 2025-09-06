@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+*.egg
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.hypothesis
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build outputs
+build/
+dist/
+output/
+*.log
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Docker files (no need to copy them inside)
+Dockerfile
+docker-compose.yml
+.dockerignore
+docker-run.sh
+
+# Test files (optional, uncomment if you don't want tests in production image)
+# tests/
+# test_*.py
+
+# Local config (will be mounted as volume)
+concat-config.yaml

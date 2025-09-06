@@ -1,19 +1,17 @@
-# ===== main.py =====
-
 #!/usr/bin/env python3
 """
 AI Context Craft - Main Module
 Tool for preparing code context for LLMs
+Docker version - simplified without auto-installation features
 """
 
 import sys
 import argparse
 from pathlib import Path
 
-# Cette ligne est maintenant la clé : elle permet de trouver le package utils
+# Add parent directory to path
 sys.path.append(str(Path(__file__).parent))
 
-# Importez la classe depuis son nouvel emplacement
 from utils.app import AIContextCraft
 
 def main():
@@ -37,21 +35,13 @@ def main():
         action="store_true",
         help="Only include files tracked by Git"
     )
+    
     parser.add_argument(
         "--git-all",
         action="store_true",
         help="Include Git tracked files and untracked files"
     )
-    parser.add_argument(
-        "--reset-deps",
-        action="store_true",
-        help="Reset dependency installation preferences"
-    )
-    parser.add_argument(
-        "--show-deps",
-        action="store_true",
-        help="Show current dependency preferences"
-    )
+    
     tree_group = parser.add_mutually_exclusive_group()
     tree_group.add_argument(
         "--with-tree", 
@@ -103,6 +93,7 @@ def main():
         "--config", 
         help="Custom configuration file"
     )
+    
     parser.add_argument(
         "--mode", 
         choices=['include', 'exclude'],
@@ -116,17 +107,8 @@ def main():
     )
     
     args = parser.parse_args()
-
-    if args.reset_deps:
-        from utils.dependency_manager import DependencyManager
-        DependencyManager().reset_preferences()
-        sys.exit(0)
-
-    if args.show_deps:
-        from utils.dependency_manager import DependencyManager
-        DependencyManager().show_preferences()
-        sys.exit(0)
     
+    # Initialize AIContextCraft
     craft = AIContextCraft(args.config, args.source)
     
     if args.mode:

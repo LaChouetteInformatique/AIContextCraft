@@ -96,5 +96,3 @@ exclude_files:
 - yarn.lock
 - .DS_Store
 - Thumbs.db
-dependencies:
-  never_install_clipboard: true
