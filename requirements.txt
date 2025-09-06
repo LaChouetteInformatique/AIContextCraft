@@ -12,3 +12,4 @@ tree-sitter-languages>=1.8.0
 # Testing (optional)
 pytest>=7.4.0
 pytest-cov>=4.1.0
+docker>=6.0.0  # Pour les tests d'intégration
