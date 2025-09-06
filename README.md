@@ -1,135 +1,282 @@
-![Public Domain Dedication](https://img.shields.io/badge/Public%20Domain-CC0%201.0-blue)
+# 🤖 AI Context Craft
 
-# AI Context Craft 🤖
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue?logo=python)](https://www.python.org/)
+<!-- [![Tests](https://img.shields.io/badge/Tests-Passing-green)](tests/README.md) -->
+[![License: CC0](https://img.shields.io/badge/License-CC0-lightgrey.svg)](LICENSE)
 
-**AI Context Craft** is a powerful and configurable command-line tool for aggregating source code files into a single text file. It is designed to easily prepare complete project contexts to be fed into large language models (LLMs) like Gemini, GPT, etc.
+> 🚀 **Transform your entire codebase into AI-ready context with a single command**
 
-## ✨ Features
+AI Context Craft intelligently concatenates your project files into a single, optimized text file - perfect for feeding into Large Language Models like GPT-4, Claude, or Gemini. No more manual copy-pasting or token limit struggles!
 
--   **File Concatenation**: Selectively combines your project's files into a single context.
--   **Advanced Filtering**: Uses `.gitignore`-style patterns to finely include or exclude files and folders (thanks to `pathspec`).
--   **Tree Generation**: Automatically includes a tree representation of your project structure to give the LLM more context.
--   **Multiple Tree Modes**:
-    -   `--with-tree`: Tree based on the same filters as the concatenation.
-    -   `--with-tree-full`: Full project tree (with minimal exclusions).
-    -   `--with-tree-custom`: Tree based on a custom configuration.
--   **Comment Stripping**: `--strip-comments` option to clean up code and save tokens (thanks to `tree-sitter`).
--   **Flexible Configuration**: Manage your filters via a `concat-config.yaml` file for easy reuse.
--   **Configuration Validation**: A command to check that your configuration is valid.
+<p align="center">
+  <img src="https://img.shields.io/badge/Perfect_for-ChatGPT-74aa9c?logo=openai" />
+  <img src="https://img.shields.io/badge/Perfect_for-Claude-cc9b7a?logo=anthropic" />
+  <img src="https://img.shields.io/badge/Perfect_for-Gemini-4285F4?logo=google" />
+</p>
 
-## 🚀 Installation
+## ✨ Why AI Context Craft?
 
-The installation script will set up a Python virtual environment and install all necessary dependencies.
+When working with AI assistants, you often need to share your entire codebase for context. **AI Context Craft** solves this elegantly:
 
 ```bash
-# Clone the project (if you haven't already)
-git clone https://github.com/YOUR_USERNAME/ai-context-craft.git
-cd ai-context-craft
+# One command to rule them all
+./docker-run.sh /path/to/your/project
 
-# Run the installation script
-bash install.sh
+# 💫 Result: A perfectly formatted file ready for your AI assistant
 ```
 
-## 📖 Usage
+### 🎯 Key Features
 
-After installation, make sure to activate the virtual environment before using the tool.
+- **🐳 Docker-powered** - Zero dependencies, works everywhere
+- **🎨 Smart Filtering** - `.gitignore`-style patterns to include/exclude files
+- **🌳 Project Tree** - Visual structure for better AI comprehension  
+- **💬 Comment Stripping** - Save tokens by removing comments
+- **📊 Token Estimation** - Know if it fits in your model's context
+- **📋 Clipboard Ready** - Copy directly to clipboard (Linux/X11)
+- **🔄 Git-Aware** - Optionally filter by Git tracked files
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Docker ([Install Docker](https://docs.docker.com/get-docker/))
+- That's it! 🎉
+
+### Installation
 
 ```bash
-source venv/bin/activate
+# Clone the repository
+git clone https://github.com/LaChouetteInformatique/AIContextCraft.git
+cd AIContextCraft
+
+# Make the script executable
+chmod +x docker-run.sh
+
+# Setup (first time only)
+./docker-run.sh setup
 ```
 
-### Basic Commands
+### Basic Usage
 
 ```bash
-# Concatenate files in the current directory (output in build/)
-./run.sh
+# Process current directory
+./docker-run.sh
 
-# Process another directory
-./run.sh ../my-other-project
+# Process any project
+./docker-run.sh /path/to/project
 
-# Specify an output file
-./run.sh -o ./output/project_context.txt
+# Include project tree structure
+./docker-run.sh . --with-tree
+
+# Strip comments to save tokens
+./docker-run.sh . --strip-comments
+
+# Copy directly to clipboard
+./docker-run.sh . --to-clipboard
 ```
 
-### Popular Options
+## 📖 Real-World Examples
+
+### 🔍 Code Review with AI
 
 ```bash
-# Include a project tree in the output
-./run.sh --with-tree
+# Get your Python backend ready for review
+./docker-run.sh backend/ --strip-comments --with-tree
 
-# Include a more complete tree
-./run.sh --with-tree-full
-
-# Strip all comments from the code
-./run.sh --strip-comments
-
-# Combine options
-./run.sh --with-tree --strip-comments
+# Then paste into ChatGPT: "Review this code for security issues"
 ```
 
-### Generate Tree Only
+### 🐛 Debug with Full Context
 
 ```bash
-# Generate the tree only using the 'full' configuration
-./run.sh --tree-only --tree-mode full -o project-tree.txt
+# Include everything except tests
+echo "mode: exclude
+exclude: ['**/tests/**', '**/*.test.*']" > concat-config.yaml
+
+./docker-run.sh . --with-tree
+# Paste into Claude: "Why is my API returning 500 errors?"
 ```
 
-### Validate Configuration
-
-Before running a large concatenation, you can validate your `concat-config.yaml` file.
+### 📚 Documentation Generation
 
 ```bash
-./validate_config.py
+# Extract all docstrings and comments
+./docker-run.sh src/ --with-tree
+# Ask Gemini: "Generate API documentation from this code"
 ```
 
-## ⚙️ Configuration (`concat-config.yaml`)
+## ⚙️ Configuration
 
-Create a `concat-config.yaml` file at the root of your project to precisely control which files are included.
-
-**Example Configuration (exclude mode):**
+Create a `concat-config.yaml` file in your project root:
 
 ```yaml
-# File: concat-config.yaml
-
 concat_project_files:
-  # In 'exclude' mode, everything is included except what is listed below.
-  mode: exclude
+  mode: include  # or 'exclude'
+  include:
+    - '**/*.py'     # All Python files
+    - '**/*.js'     # All JavaScript files
+    - '**/*.md'     # All Markdown files
   exclude:
-    # Entire folders
-    - 'node_modules/'
-    - 'build/'
-    - 'dist/'
-    - '.venv/'
-    - '__pycache__/'
-    - '.git/'
-    # Files by name or pattern
-    - '*.log'
-    - '*.lock'
-    - '.env'
-    - 'data/*'
+    - 'node_modules/**'
+    - 'venv/**'
+    - '**/*.min.js'
 ```
 
-**Example Configuration (include mode):**
+<details>
+<summary>📋 More Configuration Examples</summary>
 
+**Python Project**
 ```yaml
-# File: concat-config.yaml
-
 concat_project_files:
-  # In 'include' mode, nothing is included except what is listed below.
   mode: include
   include:
-    - 'src/**/*.py'      # All Python files in src
-    - 'src/**/*.js'       # All JS files in src
-    - 'tests/*.py'        # Test files at the root of tests/
-    - 'README.md'         # The main README
+    - '**/*.py'
     - 'requirements.txt'
+    - 'README.md'
+  exclude:
+    - '__pycache__/**'
+    - '.pytest_cache/**'
 ```
 
+**React/TypeScript Project**
+```yaml
+concat_project_files:
+  mode: include
+  include:
+    - 'src/**/*.tsx'
+    - 'src/**/*.ts'
+    - 'package.json'
+  exclude:
+    - '**/*.test.tsx'
+    - 'node_modules/**'
+```
+
+**Full Stack Project**
+```yaml
+concat_project_files:
+  mode: exclude
+  exclude:
+    - 'node_modules/**'
+    - 'venv/**'
+    - '.git/**'
+    - '**/*.log'
+    - 'build/**'
+    - 'dist/**'
+```
+
+</details>
+
+## 🎯 Advanced Features
+
+### Tree Modes
+
+```bash
+# Basic tree (same filters as concatenation)
+./docker-run.sh . --with-tree
+
+# Full tree (minimal exclusions)
+./docker-run.sh . --with-tree-full
+
+# Custom tree (using custom_tree_files config)
+./docker-run.sh . --with-tree-custom
+
+# Tree only (no file contents)
+./docker-run.sh . --tree-only --tree-mode full
+```
+
+### Git Integration
+
+```bash
+# Only Git-tracked files
+./docker-run.sh . --git-only
+
+# Git-tracked + untracked (exclude ignored)
+./docker-run.sh . --git-all
+```
+
+### Token Management
+
+```bash
+# See token estimation
+./docker-run.sh . --stats
+
+# Output shows:
+# 🎯 Estimated tokens: 15,234
+# ✅ gpt-4-turbo (11.9% of context)
+# ✅ claude-3-opus (7.6% of context)
+```
+
+## 🧪 Testing
+
+The project includes a comprehensive test suite:
+
+```bash
+# Run tests
+make test        # Default tests (~2 min)
+make test-quick  # Quick smoke tests (~30 sec)
+make test-full   # Complete suite (~5 min)
+```
+
+📖 **[Full Testing Documentation →](tests/README.md)**
+
+## 🐳 Docker Commands
+
+<details>
+<summary>🔧 Advanced Docker Usage</summary>
+
+```bash
+# Build image manually
+docker build -t aicontextcraft .
+
+# Run without wrapper script
+docker run --rm \
+  -v $(pwd):/workspace \
+  aicontextcraft . --with-tree
+
+# Interactive shell for debugging
+./docker-run.sh shell
+
+# Update and rebuild
+./docker-run.sh update
+
+# Clean everything
+./docker-run.sh clean
+```
+
+</details>
+
+## 🤝 Contributing
+
+Contributions are welcome! This project is in the **public domain** (CC0).
+
+### Development Setup
+
+```bash
+# Clone and setup
+git clone https://github.com/LaChouetteInformatique/AIContextCraft.git
+cd AIContextCraft
+
+# Run tests
+make test
+
+# Make changes and test
+make test-quick
+
+# Open PR!
+```
+
+## 📝 Use Cases
+
+- 🤖 **AI Development** - Share complete context with LLMs
+- 🔍 **Code Reviews** - Get AI to review your entire codebase
+- 📚 **Documentation** - Generate docs from code
+- 🐛 **Debugging** - Give AI full context for troubleshooting
+- 🎓 **Learning** - Understand new codebases quickly
+- 🔄 **Refactoring** - Plan large-scale changes with AI
 
 ## 📜 License
 
-This project is dedicated to the **public domain** via the [Creative Commons Zero (CC0) 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) license.
+This project is released into the **public domain** under the [CC0 1.0 Universal](LICENSE) dedication.
 
-You are free to copy, modify, distribute, and perform the work, even for commercial purposes, all without asking permission.
-
----
+You can copy, modify, distribute, and perform the work, even for commercial purposes, all without asking permission.
