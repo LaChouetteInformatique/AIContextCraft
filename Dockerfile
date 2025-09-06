@@ -1,5 +1,5 @@
 # Multi-stage build for optimized image size
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -49,6 +49,6 @@ VOLUME ["/app/input", "/app/output"]
 # Switch to non-root user
 USER aicraft
 
-# Default command (can be overridden)
-ENTRYPOINT ["python", "main.py"]
+# FIX: Use absolute path for main.py
+ENTRYPOINT ["python", "/app/main.py"]
 CMD ["--help"]
