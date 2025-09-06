@@ -1,5 +1,5 @@
 # AI Context Craft - Test Makefile
-.PHONY: help test setup clean debug
+.PHONY: help test setup clean
 
 # Default target
 .DEFAULT_GOAL := help
@@ -20,6 +20,7 @@ test: setup ## Run Python tests with Docker socket
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v $(PWD)/tests:/tests:ro \
 		-v $(PWD)/tests/test-project:/test-project:ro \
+		-v $(PWD)/tests/test-configs:/test-configs:rw \
 		python:3.9-slim bash -c "\
 			apt-get update && apt-get install -y docker.io && \
 			pip install -q pytest pytest-timeout && \
@@ -27,31 +28,10 @@ test: setup ## Run Python tests with Docker socket
 			python -m pytest test_integration.py -v --tb=short \
 		"
 
-debug: setup ## Run debug tests to see what's happening
-	@echo "Running debug tests..."
-	@docker run --rm -it \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-v $(PWD)/tests:/tests:ro \
-		-v $(PWD)/tests/test-project:/test-project:ro \
-		python:3.9-slim bash -c "\
-			apt-get update && apt-get install -y docker.io && \
-			pip install -q pytest && \
-			cd /tests && \
-			python -m pytest test_integration_debug.py -v -s \
-		"
-
 test-quick: setup ## Run quick smoke test
 	@echo "Running quick test..."
 	@docker run --rm aicontextcraft:test --help > /dev/null && echo "✓ Help command works"
 	@docker run --rm -v $(PWD)/tests/test-project:/workspace aicontextcraft:test /workspace > /dev/null && echo "✓ Process directory works"
-
-test-direct: setup ## Test directly without Python wrapper
-	@echo "Testing directly..."
-	@echo "1. Test help:"
-	@docker run --rm aicontextcraft:test --help
-	@echo ""
-	@echo "2. Test with test project:"
-	@docker run --rm -v $(PWD)/tests/test-project:/workspace -w /workspace aicontextcraft:test .
 
 clean: ## Clean test artifacts
 	@rm -rf tests/test-project

@@ -16,7 +16,7 @@ NC='\033[0m'
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$SCRIPT_DIR"  # Script is at project root
 TEST_DIR="$PROJECT_ROOT/tests"
 
 # Helper functions
@@ -30,7 +30,7 @@ log_warning() { log "${YELLOW}⚠️  $1${NC}"; }
 show_banner() {
     echo -e "${BOLD}${CYAN}"
     echo "╔═══════════════════════════════════════╗"
-    echo "║   AI Context Craft Test System       ║"
+    echo "║   AI Context Craft Test System        ║"
     echo "║         Python Test Runner            ║"
     echo "╚═══════════════════════════════════════╝"
     echo -e "${NC}"
@@ -58,17 +58,28 @@ check_prerequisites() {
 build_environment() {
     log_info "Building test environment..."
     
-    # Build main application image
-    docker build -t aicontextcraft:test "$PROJECT_ROOT" || {
-        log_error "Failed to build main application image"
+    # Build main application image from project root
+    if [ -f "$PROJECT_ROOT/Dockerfile" ]; then
+        docker build -t aicontextcraft:test "$PROJECT_ROOT" || {
+            log_error "Failed to build main application image"
+            exit 1
+        }
+    else
+        log_error "Dockerfile not found at $PROJECT_ROOT/Dockerfile"
         exit 1
-    }
+    fi
     
-    # Build test runner image
-    docker build -f "$TEST_DIR/Dockerfile.test" -t aicc-test-runner:latest "$PROJECT_ROOT" || {
-        log_error "Failed to build test runner image"
+    # Build test runner image using the test Dockerfile
+    # IMPORTANT: Use PROJECT_ROOT as build context, not TEST_DIR
+    if [ -f "$TEST_DIR/Dockerfile.test" ]; then
+        docker build -f "$TEST_DIR/Dockerfile.test" -t aicc-test-runner:latest "$TEST_DIR" || {
+            log_error "Failed to build test runner image"
+            exit 1
+        }
+    else
+        log_error "Dockerfile.test not found at $TEST_DIR/Dockerfile.test"
         exit 1
-    }
+    fi
     
     log_success "Test environment built"
 }
@@ -92,16 +103,21 @@ run_tests() {
     
     log_info "Running tests..."
     
-    # Start test runner
-    docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" run --rm test-runner \
-        python test_runner.py $test_args
-    
-    local exit_code=$?
-    
-    # Clean up
-    docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" down 2>/dev/null
-    
-    return $exit_code
+    # Check if docker-compose.test.yml exists
+    if [ -f "$PROJECT_ROOT/docker-compose.test.yml" ]; then
+        docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" run --rm test-runner \
+            python test_runner.py $test_args
+        
+        local exit_code=$?
+        
+        # Clean up
+        docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" down 2>/dev/null
+        
+        return $exit_code
+    else
+        # Fallback to direct Docker run
+        run_tests_direct $test_args
+    fi
 }
 
 # Run tests directly in Docker
@@ -156,8 +172,13 @@ debug_shell() {
 monitor_tests() {
     log_info "Starting test monitor..."
     
-    docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" \
-        --profile monitor up test-monitor
+    if [ -f "$PROJECT_ROOT/docker-compose.test.yml" ]; then
+        docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" \
+            --profile monitor up test-monitor
+    else
+        log_error "docker-compose.test.yml not found"
+        exit 1
+    fi
 }
 
 # View test results
@@ -193,10 +214,15 @@ http {
 EOF
     fi
     
-    docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" \
-        --profile viewer up -d test-viewer
-    
-    log_success "Result viewer started at http://localhost:8080"
+    if [ -f "$PROJECT_ROOT/docker-compose.test.yml" ]; then
+        docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" \
+            --profile viewer up -d test-viewer
+        
+        log_success "Result viewer started at http://localhost:8080"
+    else
+        log_error "docker-compose.test.yml not found"
+        exit 1
+    fi
 }
 
 # Clean test environment
@@ -204,7 +230,9 @@ clean_environment() {
     log_info "Cleaning test environment..."
     
     # Stop all containers
-    docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" down -v 2>/dev/null || true
+    if [ -f "$PROJECT_ROOT/docker-compose.test.yml" ]; then
+        docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" down -v 2>/dev/null || true
+    fi
     
     # Remove test results
     rm -rf "$TEST_DIR/test-results"

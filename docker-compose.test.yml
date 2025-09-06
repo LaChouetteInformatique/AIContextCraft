@@ -19,7 +19,7 @@ services:
       - TEST_MODE=true
       - DOCKER_HOST=unix:///var/run/docker.sock
     working_dir: /app/tests
-    command: python test_runner.py
+    command: python test_runner_simple.py
     networks:
       - test-network
 

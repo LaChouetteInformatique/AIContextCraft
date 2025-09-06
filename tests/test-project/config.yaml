@@ -1,0 +1,11 @@
+app:
+  name: Lorem Ipsum Generator
+  version: 1.0.0
+  
+backend:
+  host: localhost
+  port: 5000
+  
+frontend:
+  host: localhost
+  port: 3000
