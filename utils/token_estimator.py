@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 """
-Token estimation utilities for AI Context Craft
-Supports multiple tokenization methods with fallback
+Token estimation utilities for AI Context Craft - Docker version
+Tiktoken is pre-installed in the Docker image
 """
 
 from typing import Optional, Dict, Tuple
 import logging
-from .dependency_manager import DependencyManager
 
 class TokenEstimator:
     """Estimates token count for different LLM models"""
     
     def __init__(self):
-        dep_manager = DependencyManager()
-        self.tiktoken_available = dep_manager.check_tiktoken()
+        self.tiktoken_available = self._check_tiktoken()
         self.encoder = None
         self.model_limits = {
             'gpt-4': 8192,
@@ -205,40 +203,3 @@ class TokenEstimator:
             lines.append(self.get_recommendation(tokens))
         
         return "\n".join(lines)
-    
-    def install_tiktoken_instructions(self) -> str:
-        """Returns instructions for installing tiktoken"""
-        return """
-📦 For more accurate token estimation, install tiktoken:
-   pip install tiktoken
-   
-This will provide exact token counts for OpenAI models.
-"""
-
-
-# Integration example for stats_utils.py:
-"""
-from utils.token_estimator import TokenEstimator
-
-class StatsCollector:
-    def __init__(self):
-        # ... existing code ...
-        self.token_estimator = TokenEstimator()
-    
-    def get_formatted_summary(self, result: Dict[str, Any]) -> str:
-        # ... existing code ...
-        
-        # Replace simple estimation with advanced one
-        if hasattr(self, 'token_estimator'):
-            # Get all content
-            total_content = "\\n".join([f['content'] for f in result['files']])
-            estimation = self.token_estimator.estimate_tokens(total_content)
-            
-            lines.append("")
-            lines.append("🔤 TOKEN ESTIMATION:")
-            lines.append(self.token_estimator.format_summary(estimation))
-        else:
-            # Fallback to simple estimation
-            estimated_tokens = self.stats['total_size'] // 4
-            lines.append(f"🔤 Estimated tokens: ~{estimated_tokens:,} (rough estimate)")
-"""

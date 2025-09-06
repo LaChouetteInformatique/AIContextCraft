@@ -30,6 +30,7 @@ concat_project_files:
   - .env*
   - '*.min.js'
   - '*.min.css'
+
 tree_project_files:
   mode: exclude
   exclude:
@@ -42,6 +43,7 @@ tree_project_files:
   - .env
   - '*.log'
   - .pytest_cache/**
+
 custom_tree_files:
   mode: exclude
   exclude:
@@ -68,6 +70,8 @@ custom_tree_files:
   - .env
   - .env.*
   - test_*.py
+
+# Legacy format (for backward compatibility)
 include_extensions:
 - .py
 - .js
@@ -80,6 +84,7 @@ include_extensions:
 - .json
 - .sh
 - .bash
+
 exclude_dirs:
 - venv
 - .venv
@@ -89,6 +94,7 @@ exclude_dirs:
 - build
 - dist
 - .pytest_cache
+
 exclude_files:
 - .env
 - .env.local

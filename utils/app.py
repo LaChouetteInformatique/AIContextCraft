@@ -12,6 +12,7 @@ from .tree_generator import TreeGenerator
 from .stats_utils import StatsCollector
 from .clipboard_manager import ClipboardManager
 from .git_manager import GitManager
+from .token_estimator import TokenEstimator
 
 class AIContextCraft:
     """Main class for AI Context Craft"""

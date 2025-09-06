@@ -9,6 +9,7 @@ from .pattern_matcher import PatternMatcher
 from .stats_utils import StatsCollector
 from .comment_stripper import CommentStripper
 from .clipboard_manager import ClipboardManager
+from .token_estimator import TokenEstimator
 
 __all__ = [
     'ConfigManager',
@@ -18,4 +19,5 @@ __all__ = [
     'StatsCollector',
     'CommentStripper',
     'ClipboardManager',
+    'TokenEstimator',
 ]
