@@ -1,20 +1,22 @@
-"""Project tree generator"""
+"""Project tree generator using anytree library"""
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, Optional
+from anytree import Node, RenderTree
+from anytree.exporter import DictExporter
+from anytree.render import AbstractStyle, ContRoundStyle, AsciiStyle
 from .pattern_matcher import PatternMatcher
 
+
 class TreeGenerator:
-    """Generates a tree representation of the project"""
+    """Generates a tree representation of the project using anytree"""
     
     def __init__(self, config_manager):
         self.config = config_manager
         self.pattern_matcher = PatternMatcher(config_manager)
-        self.tree_chars = {
-            'branch': '├── ',
-            'last': '└── ',
-            'vertical': '│   ',
-            'space': '    '
-        }
+        # Choose tree style (can be configured)
+        self.tree_style = ContRoundStyle()  # ├── └── style
+        # Alternative styles:
+        # self.tree_style = AsciiStyle()  # +-- style for better compatibility
     
     def generate_tree(self, source_dir: str, mode: str = 'normal') -> str:
         """
@@ -25,122 +27,113 @@ class TreeGenerator:
             mode: Generation mode ('normal', 'full', 'custom')
         """
         source_path = Path(source_dir).resolve()
-        
         config = self._get_config_for_mode(mode)
         
+        # Build header
         header = f"# Tree mode: {mode}\n"
         if mode != 'normal':
             config_section = self._get_config_section_name(mode)
             header += f"# Using config section: {config_section}\n"
-        header += f"# {'='*40}\n"
+        header += f"# {'='*40}\n\n"
         
-        lines = [header, f"{source_path.name}/"]
-        self._build_tree_recursive(source_path, lines, "", config)
+        # Build tree using anytree
+        root_node = self._build_tree(source_path, config)
+        
+        # Render tree
+        lines = [header]
+        for pre, _, node in RenderTree(root_node, style=self.tree_style):
+            lines.append(f"{pre}{node.name}")
         
         return '\n'.join(lines)
     
-    def _get_config_for_mode(self, mode: str) -> dict:
+    def _build_tree(self, root_path: Path, config: dict) -> Node:
         """
-        Returns the appropriate configuration according to the mode.
-        This allows for different levels of detail in the tree view.
-        """
-        if mode == 'normal':
-            return self.config.get_concat_config()
-        elif mode == 'full':
-            if 'tree_project_files' in self.config.config:
-                return self.config.config.get('tree_project_files', {})
-            else:
-                # Fallback: exclude mode with only common system/build folders
-                return {
-                    'mode': 'exclude',
-                    'exclude': ['venv/**', '.venv/**', 'node_modules/**', '__pycache__/**', 
-                               '.git/**', 'build/**', 'dist/**', '*.pyc', '.env', '*.log']
-                }
-        elif mode == 'custom':
-            if 'custom_tree_files' in self.config.config:
-                return self.config.config.get('custom_tree_files', {})
-            else:
-                # Fallback: a reasonable intermediate configuration
-                return {
-                    'mode': 'exclude',
-                    'exclude': ['venv/**', '.venv/**', 'node_modules/**', '__pycache__/**', 
-                               '.git/**', '*.pyc', '*.log', '*.min.js', '*.min.css']
-                }
-        else:
-            return self.config.get_concat_config()
-    
-    def _get_config_section_name(self, mode: str) -> str:
-        """Returns the name of the config section used"""
-        if mode == 'full':
-            return 'tree_project_files'
-        elif mode == 'custom':
-            return 'custom_tree_files'
-        else:
-            return 'concat_project_files'
-    
-    def _build_tree_recursive(self, path: Path, lines: List[str], prefix: str, config: dict):
-        """Builds the tree recursively"""
+        Build anytree structure from filesystem
         
+        Args:
+            root_path: Root directory path
+            config: Filter configuration
+            
+        Returns:
+            Root node of the tree
+        """
+        # Create root node with directory name and trailing slash
+        root_node = Node(f"{root_path.name}/")
+        
+        # Build tree recursively
+        self._add_children(root_node, root_path, root_path, config)
+        
+        return root_node
+    
+    def _add_children(self, parent_node: Node, path: Path, root_path: Path, config: dict):
+        """
+        Recursively add children to the tree
+        
+        Args:
+            parent_node: Parent node in the tree
+            path: Current directory path
+            root_path: Original root path for relative calculations
+            config: Filter configuration
+        """
         try:
             items = []
+            
+            # Collect items that should be included
             for item in sorted(path.iterdir()):
-                # Special handling for hidden files/dirs to balance visibility and noise.
-                if item.name.startswith('.'):
-                    # Always include certain important config files.
-                    if item.name not in ['.env.example', '.gitignore', '.github', '.dockerignore']:
-                        if item.is_dir() and item.name != '.github':
-                            continue
-                        if item.is_file() and not self._should_include_item(item, path, config):
-                            continue
-                
-                if self._should_include_item(item, path, config):
+                if self._should_include(item, root_path, config):
                     items.append(item)
+            
+            # Sort: directories first, then files, alphabetically
+            items.sort(key=lambda x: (not x.is_dir(), x.name.lower()))
+            
+            # Add items as nodes
+            for item in items:
+                if item.is_dir():
+                    # Directory node with trailing slash
+                    dir_node = Node(f"{item.name}/", parent=parent_node)
+                    # Recursively add children
+                    self._add_children(dir_node, item, root_path, config)
+                else:
+                    # File node with size
+                    size_str = self._format_size(item.stat().st_size)
+                    Node(f"{item.name} ({size_str})", parent=parent_node)
                     
         except PermissionError:
-            lines.append(f"{prefix}[Permission Denied]")
-            return
-        
-        # Sort to display folders first, then files, alphabetically.
-        items.sort(key=lambda x: (not x.is_dir(), x.name.lower()))
-        
-        for i, item in enumerate(items):
-            is_last_item = (i == len(items) - 1)
-            
-            if is_last_item:
-                connector = self.tree_chars['last']
-                new_prefix = prefix + self.tree_chars['space']
-            else:
-                connector = self.tree_chars['branch']
-                new_prefix = prefix + self.tree_chars['vertical']
-            
-            if item.is_dir():
-                lines.append(f"{prefix}{connector}{item.name}/")
-                self._build_tree_recursive(item, lines, new_prefix, config)
-            else:
-                try:
-                    size = item.stat().st_size
-                    size_str = self._format_size(size)
-                    lines.append(f"{prefix}{connector}{item.name} ({size_str})")
-                except:
-                    lines.append(f"{prefix}{connector}{item.name}")
+            Node("[Permission Denied]", parent=parent_node)
     
-    def _format_size(self, size: int) -> str:
-        """Formats a size into a readable format"""
-        if size < 1024:
-            return f"{size}B"
-        elif size < 1024 * 1024:
-            return f"{size/1024:.1f}KB"
-        else:
-            return f"{size/(1024*1024):.1f}MB"
-    
-    def _should_include_item(self, item: Path, base_path: Path, config: dict) -> bool:
-        """Determines if an item should be included in the tree"""
+    def _should_include(self, item: Path, root_path: Path, config: dict) -> bool:
+        """
+        Determines if an item should be included in the tree
         
+        Args:
+            item: Path to check
+            root_path: Root path for relative calculations
+            config: Filter configuration
+            
+        Returns:
+            True if item should be included
+        """
+        # Handle hidden files/directories
+        if item.name.startswith('.'):
+            # Special cases for important hidden files
+            important_hidden = {'.gitignore', '.dockerignore', '.env.example', '.github'}
+            if item.name not in important_hidden and not item.is_dir():
+                return False
+            if item.is_dir() and item.name not in {'.github'}:
+                # Skip most hidden directories
+                return False
+        
+        # Skip common system directories early
+        if item.is_dir() and item.name in {'__pycache__', 'node_modules', 'venv', '.venv', '.git'}:
+            return False
+        
+        # Advanced filtering if configured
         if not self.config.is_advanced_format():
             return self._should_include_legacy(item)
         
+        # Calculate relative path for pattern matching
         try:
-            rel_path = str(item.relative_to(base_path))
+            rel_path = str(item.relative_to(root_path)).replace('\\', '/')
         except ValueError:
             rel_path = item.name
         
@@ -151,17 +144,19 @@ class TreeGenerator:
             exclude_patterns = config.get('exclude', [])
             
             if item.is_dir():
-                # For directories, check if they could potentially contain included files.
+                # Check if directory might contain included files
                 dir_pattern = f"{rel_path}/**"
                 for pattern in include_patterns:
-                    if (pattern.startswith(rel_path) or 
+                    if (pattern.startswith(f"{rel_path}/") or 
                         self.pattern_matcher.match(dir_pattern, [pattern]) or
-                        self.pattern_matcher.match(rel_path, [pattern])):
+                        '**' in pattern):
+                        # Check exclusions
                         if exclude_patterns and self.pattern_matcher.match(rel_path, exclude_patterns):
                             return False
                         return True
                 return False
             else:
+                # Check file against patterns
                 if self.pattern_matcher.match(rel_path, include_patterns):
                     if exclude_patterns and self.pattern_matcher.match(rel_path, exclude_patterns):
                         return False
@@ -170,8 +165,8 @@ class TreeGenerator:
         else:  # exclude mode
             exclude_patterns = config.get('exclude', [])
             if item.is_dir():
-                dir_pattern = f"{rel_path}/"
-                return not self.pattern_matcher.match(dir_pattern, exclude_patterns)
+                dir_patterns = [rel_path, f"{rel_path}/"]
+                return not any(self.pattern_matcher.match(p, exclude_patterns) for p in dir_patterns)
             else:
                 return not self.pattern_matcher.match(rel_path, exclude_patterns)
     
@@ -192,3 +187,137 @@ class TreeGenerator:
                 return item.suffix in include_ext or item.name in include_ext
             
             return True
+    
+    def _format_size(self, size: int) -> str:
+        """Formats a size into a readable format"""
+        if size < 1024:
+            return f"{size}B"
+        elif size < 1024 * 1024:
+            return f"{size/1024:.1f}KB"
+        else:
+            return f"{size/(1024*1024):.1f}MB"
+    
+    def _get_config_for_mode(self, mode: str) -> dict:
+        """
+        Returns the appropriate configuration according to the mode.
+        """
+        if mode == 'normal':
+            return self.config.get_concat_config()
+        elif mode == 'full':
+            if 'tree_project_files' in self.config.config:
+                return self.config.config.get('tree_project_files', {})
+            else:
+                # Fallback: minimal exclusions for full view
+                return {
+                    'mode': 'exclude',
+                    'exclude': ['venv/**', '.venv/**', 'node_modules/**', '__pycache__/**', 
+                               '.git/**', '*.pyc', '*.log']
+                }
+        elif mode == 'custom':
+            if 'custom_tree_files' in self.config.config:
+                return self.config.config.get('custom_tree_files', {})
+            else:
+                # Fallback: reasonable intermediate configuration
+                return {
+                    'mode': 'exclude',
+                    'exclude': ['venv/**', '.venv/**', 'node_modules/**', '__pycache__/**', 
+                               '.git/**', '*.pyc', '*.log', '*.min.js', '*.min.css']
+                }
+        else:
+            return self.config.get_concat_config()
+    
+    def _get_config_section_name(self, mode: str) -> str:
+        """Returns the name of the config section used"""
+        if mode == 'full':
+            return 'tree_project_files'
+        elif mode == 'custom':
+            return 'custom_tree_files'
+        else:
+            return 'concat_project_files'
+    
+    def export_json(self, source_dir: str, mode: str = 'normal') -> dict:
+        """
+        Export tree as JSON structure (bonus feature with anytree)
+        
+        Args:
+            source_dir: Source directory
+            mode: Generation mode
+            
+        Returns:
+            Dictionary representation of the tree
+        """
+        source_path = Path(source_dir).resolve()
+        config = self._get_config_for_mode(mode)
+        root_node = self._build_tree(source_path, config)
+        
+        exporter = DictExporter()
+        return exporter.export(root_node)
+    
+    def generate_tree_with_stats(self, source_dir: str, mode: str = 'normal') -> str:
+        """
+        Generate tree with statistics (file count, total size per directory)
+        
+        Args:
+            source_dir: Source directory
+            mode: Generation mode
+            
+        Returns:
+            Tree with statistics
+        """
+        source_path = Path(source_dir).resolve()
+        config = self._get_config_for_mode(mode)
+        
+        # Build tree with stats
+        root_node = self._build_tree_with_stats(source_path, config)
+        
+        # Build header
+        header = f"# Tree mode: {mode} (with statistics)\n"
+        header += f"# {'='*40}\n\n"
+        
+        # Render tree
+        lines = [header]
+        for pre, _, node in RenderTree(root_node, style=self.tree_style):
+            if hasattr(node, 'stats'):
+                stats = node.stats
+                lines.append(f"{pre}{node.name} [{stats['files']} files, {self._format_size(stats['size'])}]")
+            else:
+                lines.append(f"{pre}{node.name}")
+        
+        return '\n'.join(lines)
+    
+    def _build_tree_with_stats(self, root_path: Path, config: dict) -> Node:
+        """Build tree with statistics"""
+        root_node = Node(f"{root_path.name}/")
+        root_node.stats = {'files': 0, 'size': 0}
+        
+        self._add_children_with_stats(root_node, root_path, root_path, config)
+        
+        return root_node
+    
+    def _add_children_with_stats(self, parent_node: Node, path: Path, root_path: Path, config: dict):
+        """Add children with statistics calculation"""
+        try:
+            items = []
+            
+            for item in sorted(path.iterdir()):
+                if self._should_include(item, root_path, config):
+                    items.append(item)
+            
+            items.sort(key=lambda x: (not x.is_dir(), x.name.lower()))
+            
+            for item in items:
+                if item.is_dir():
+                    dir_node = Node(f"{item.name}/", parent=parent_node)
+                    dir_node.stats = {'files': 0, 'size': 0}
+                    self._add_children_with_stats(dir_node, item, root_path, config)
+                    # Propagate stats up
+                    parent_node.stats['files'] += dir_node.stats['files']
+                    parent_node.stats['size'] += dir_node.stats['size']
+                else:
+                    size = item.stat().st_size
+                    Node(f"{item.name} ({self._format_size(size)})", parent=parent_node)
+                    parent_node.stats['files'] += 1
+                    parent_node.stats['size'] += size
+                    
+        except PermissionError:
+            Node("[Permission Denied]", parent=parent_node)

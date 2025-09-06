@@ -47,12 +47,27 @@ Commands:
     setup           Initial setup (build + test)
     update          Update and rebuild the image
     
+AI Context Craft Options:
+    --with-tree              Include project tree structure
+    --with-tree-full         Include full tree (minimal exclusions)
+    --with-tree-custom       Include custom tree (custom_tree_files config)
+    --tree-only              Generate only tree, no file contents
+    --tree-mode MODE         Tree mode for --tree-only (normal/full/custom)
+    --strip-comments         Remove comments from code
+    --git-only              Only include Git-tracked files
+    --git-all               Include tracked + untracked (exclude ignored)
+    --to-clipboard          Copy output to clipboard (Linux/X11)
+    --no-timestamp          Don't add timestamp to filename
+    --config FILE           Use custom config file
+    --debug                 Enable debug output
+    
 Examples:
     ./docker-run.sh                    # Run with default settings
     ./docker-run.sh run . --to-clipboard
-    ./docker-run.sh run /path/to/project --strip-comments
-    ./docker-run.sh shell               # Interactive shell
-    ./docker-run.sh build               # Build/rebuild image
+    ./docker-run.sh run . --strip-comments --git-only
+    ./docker-run.sh run /path/to/project --with-tree
+    ./docker-run.sh shell              # Interactive shell
+    ./docker-run.sh build              # Build/rebuild image
     
 Docker Compose Commands:
     docker-compose up                   # Run default service

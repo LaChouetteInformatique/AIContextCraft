@@ -2,7 +2,7 @@
 """
 AI Context Craft - Main Module
 Tool for preparing code context for LLMs
-Docker version - simplified without auto-installation features
+Docker version with Git integration and advanced tree generation
 """
 
 import sys
@@ -17,8 +17,31 @@ from utils.app import AIContextCraft
 def main():
     """Main entry point""" 
     parser = argparse.ArgumentParser(
-        description="AI Context Craft - Prepare your code for LLMs",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="""AI Context Craft - Prepare your code for LLMs
+        
+Transform your codebase into AI-ready context with intelligent filtering,
+Git integration, and advanced tree visualization.
+
+Features:
+  • Smart filtering with gitignore-style patterns
+  • Git-aware file selection (tracked/untracked)
+  • Multiple tree visualization modes
+  • Comment stripping for token optimization
+  • Direct clipboard copy (Linux/X11)
+  • Accurate token estimation with tiktoken
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  %(prog)s                      # Process current directory
+  %(prog)s . --git-only         # Only Git-tracked files
+  %(prog)s . --with-tree        # Include project structure
+  %(prog)s . --strip-comments   # Remove comments to save tokens
+  %(prog)s . --to-clipboard     # Copy directly to clipboard
+
+Configuration:
+  Create concat-config.yaml in your project for custom filtering.
+  See https://github.com/YOUR_USERNAME/ai-context-craft for docs.
+        """
     )
     
     parser.add_argument(
@@ -28,82 +51,98 @@ def main():
         help="Source directory to process (default: current directory)"
     )
     
-    parser.add_argument("-o", "--output", help="Output file")
-    
     parser.add_argument(
+        "-o", "--output", 
+        help="Output file path (default: build/project_files_TIMESTAMP.txt)"
+    )
+    
+    # Git integration
+    git_group = parser.add_argument_group('Git integration')
+    git_mutex = git_group.add_mutually_exclusive_group()
+    git_mutex.add_argument(
         "--git-only",
         action="store_true",
-        help="Only include files tracked by Git"
+        help="Only include files tracked by Git (exclude untracked and ignored)"
     )
-    
-    parser.add_argument(
+    git_mutex.add_argument(
         "--git-all",
         action="store_true",
-        help="Include Git tracked files and untracked files"
+        help="Include Git tracked + untracked files (exclude only ignored)"
     )
     
-    tree_group = parser.add_mutually_exclusive_group()
-    tree_group.add_argument(
+    # Tree generation
+    tree_group = parser.add_argument_group('Tree generation')
+    tree_mutex = tree_group.add_mutually_exclusive_group()
+    tree_mutex.add_argument(
         "--with-tree", 
         action="store_true", 
-        help="Include tree with the same configuration as concatenation"
+        help="Include tree structure using concat configuration"
     )
-    tree_group.add_argument(
+    tree_mutex.add_argument(
         "--with-tree-full", 
         action="store_true", 
-        help="Include full tree (uses tree_project_files if available)"
+        help="Include full tree with minimal exclusions"
     )
-    tree_group.add_argument(
+    tree_mutex.add_argument(
         "--with-tree-custom", 
         action="store_true", 
-        help="Include custom tree (uses custom_tree_files if available)"
+        help="Include tree using custom_tree_files configuration"
     )
-    tree_group.add_argument(
+    tree_mutex.add_argument(
         "--tree-only", 
         action="store_true", 
-        help="Generate only the tree (no concatenation)"
+        help="Generate only the tree structure (no file contents)"
     )
     
-    parser.add_argument(
+    tree_group.add_argument(
         "--tree-mode",
         choices=['normal', 'full', 'custom'],
         default='normal',
         help="Tree mode for --tree-only (default: normal)"
     )
     
-    parser.add_argument(
+    # Processing options
+    process_group = parser.add_argument_group('Processing options')
+    process_group.add_argument(
         "--strip-comments", 
         action="store_true", 
-        help="Remove comments from the code"
+        help="Remove comments from code using tree-sitter AST parsing"
     )
-
-    parser.add_argument(
+    process_group.add_argument(
         "--to-clipboard", 
         action="store_true", 
-        help="Copy the result to clipboard"
+        help="Copy output to system clipboard (requires X11 on Linux)"
     )
-
-    parser.add_argument(
+    process_group.add_argument(
         "--no-timestamp", 
         action="store_true", 
-        help="Do not add a timestamp to the filename"
+        help="Don't add timestamp to output filename"
     )
     
-    parser.add_argument(
+    # Configuration
+    config_group = parser.add_argument_group('Configuration')
+    config_group.add_argument(
         "--config", 
-        help="Custom configuration file"
+        help="Path to custom configuration file (default: concat-config.yaml or config.yaml)"
     )
-    
-    parser.add_argument(
+    config_group.add_argument(
         "--mode", 
         choices=['include', 'exclude'],
-        help="Force the filtering mode"
+        help="Override filtering mode from configuration"
     )
     
+    # Debug
     parser.add_argument(
         "--debug", 
         action="store_true", 
-        help="Debug mode with detailed information"
+        help="Enable debug output with detailed filtering information"
+    )
+    
+    # Version
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s 2.0.0 (with Git integration and anytree)"
     )
     
     args = parser.parse_args()

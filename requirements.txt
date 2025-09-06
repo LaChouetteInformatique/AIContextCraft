@@ -1,6 +1,7 @@
 # Core dependencies
 pyyaml>=6.0
 pathspec>=0.11.0
+anytree>=2.8.0  # Tree generation
 
 # Token estimation
 tiktoken>=0.5.0
@@ -9,7 +10,4 @@ tiktoken>=0.5.0
 tree-sitter>=0.20.0
 tree-sitter-languages>=1.8.0
 
-# Testing (optional)
-pytest>=7.4.0
-pytest-cov>=4.1.0
-docker>=6.0.0  # Pour les tests d'intégration
+# Note: Test dependencies are in requirements-test.txt
