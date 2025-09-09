@@ -224,13 +224,17 @@ def main():
         logging.info(f"Configuration chargée et fusionnée depuis '{config_path}'")
 
     logging.info("Assemblage des filtres...")
-    def clean_patterns(patterns): return [p for p in patterns if p and p.strip()]
+    def clean_patterns(patterns):
+        if not patterns:  # Gère None et les listes vides
+            return []
+        return [p for p in patterns if p and p.strip()]
 
-    include_patterns = clean_patterns(config.get('include_patterns', ['**/*']))
-    common_filters = clean_patterns(config.get('common_filters', []))
-    project_only_filters = clean_patterns(config.get('project_only_filters', []))
-    tree_only_filters = clean_patterns(config.get('tree_only_filters', []))
-    full_body_filters = config.get('full_body_filters', [])
+    # On s'assure que même si la clé existe mais est vide (None), on a une liste
+    include_patterns = clean_patterns(config.get('include_patterns') or ['**/*'])
+    common_filters = clean_patterns(config.get('common_filters') or [])
+    project_only_filters = clean_patterns(config.get('project_only_filters') or [])
+    tree_only_filters = clean_patterns(config.get('tree_only_filters') or [])
+    full_body_filters = config.get('full_body_filters') or [] # Correction ajoutée ici aussi
 
     final_project_filters = common_filters + project_only_filters
     final_tree_filters = common_filters + tree_only_filters

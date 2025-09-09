@@ -3,8 +3,6 @@ output_path: "./build/project_context.txt"
 
 # --- SÉLECTION DES FICHIERS ---
 
-# --- SÉLECTION DES FICHIERS ---
-
 # ÉTAPE 1: INCLUSION (prioritaire)
 # Seuls les fichiers et dossiers correspondant à ces patterns seront considérés.
 # Le pattern '**/*' signifie "tous les fichiers dans tous les sous-dossiers".
@@ -12,8 +10,7 @@ output_path: "./build/project_context.txt"
 #   - ['src/', 'tests/', 'README.md'] pour ne prendre que le contenu de 'src', 'tests' et le fichier README.
 #   - ['*.py', 'requirements.txt'] pour ne prendre que les fichiers Python et le fichier requirements.
 include_patterns:
-  # - '**/*'
-  - 'main.py'
+  - '**/*'
 
 # ÉTAPE 2: EXCLUSION
 # Parmi les fichiers inclus à l'étape 1, ceux qui correspondent à ces patterns
@@ -41,10 +38,11 @@ project_only_filters:
 # Filtres spécifiques à l'arbre : N'exclut que de l'affichage de l'arbre.
 # Le contenu de ces fichiers SERA INCLUS dans la sortie finale.
 tree_only_filters:
-  - "*.md"
-  - "LICENSE"
-  - ".gitignore"
-  - "config.yaml"
+  - ""
+  # - "*.md"
+  # - "LICENSE"
+  # - ".gitignore"
+  # - "config.yaml"
 
 # --- OPTIONS AVANCÉES ---
 
