@@ -7,7 +7,6 @@
   <p>
     <a href="https://creativecommons.org/publicdomain/zero/1.0/"><img src="https://img.shields.io/badge/license-CC0_1.0-blue.svg" alt="License"></a>
     <a href="#"><img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python Version"></a>
-    <a href="#" style="display:none;"><img src="https://img.shields.io/badge/pypi-v1.0.0-orange" alt="PyPI placeholder"></a>
     <a href="#"><img src="https://img.shields.io/badge/status-active-brightgreen" alt="Status"></a>
   </p>
 </div>
