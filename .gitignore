@@ -1,0 +1,289 @@
+# ================================================================= #
+# AI Context Craft - .gitignore                                     #
+# ================================================================= #
+
+# ─────────────────────────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────────────────────────
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+virtualenv/
+.virtualenv/
+
+# Distribution / packaging
+.Python
+build/*
+!build/.gitkeep
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ─────────────────────────────────────────────────────────────────
+# Testing & Coverage
+# ─────────────────────────────────────────────────────────────────
+
+# Test results (but keep the directory structure)
+tests/test-results/*
+!tests/test-results/.gitkeep
+
+# Pytest
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+junit.xml
+
+# Test outputs
+*.log
+test-output/
+test-reports/
+
+# ─────────────────────────────────────────────────────────────────
+# AI Context Craft specific outputs
+# ─────────────────────────────────────────────────────────────────
+
+# Generated concatenation files (default pattern)
+project_files_*.txt
+project_tree_*.txt
+concat_*.txt
+
+# Build directory (where outputs go by default)
+build/*
+!build/.gitkeep
+
+# But allow example outputs for documentation
+!examples/sample_output.txt
+
+# ─────────────────────────────────────────────────────────────────
+# IDE and Editors
+# ─────────────────────────────────────────────────────────────────
+
+# VSCode
+.vscode/
+*.code-workspace
+.history/
+
+# PyCharm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+*.un~
+Session.vim
+.netrwhist
+*~
+
+# Emacs
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ─────────────────────────────────────────────────────────────────
+# Operating System
+# ─────────────────────────────────────────────────────────────────
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# ─────────────────────────────────────────────────────────────────
+# Environment & Secrets
+# ─────────────────────────────────────────────────────────────────
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Secrets
+*.key
+*.pem
+*.cert
+secrets/
+credentials/
+
+# ─────────────────────────────────────────────────────────────────
+# Dependencies
+# ─────────────────────────────────────────────────────────────────
+
+# Node (if frontend is added later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─────────────────────────────────────────────────────────────────
+# Docker
+# ─────────────────────────────────────────────────────────────────
+
+# Docker volumes (local development)
+.docker-volumes/
+
+# Temporary Dockerfiles created by tests
+tests/.dockerfile.test
+*.dockerfile.tmp
+
+# ─────────────────────────────────────────────────────────────────
+# Backup and Temporary files
+# ─────────────────────────────────────────────────────────────────
+
+# Backups
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+*.temp
+backup-*.tar.gz
+
+# Temporary files
+tmp/
+temp/
+*.swp
+*.swo
+
+/todo.sh
+
+# ─────────────────────────────────────────────────────────────────
+# Documentation build
+# ─────────────────────────────────────────────────────────────────
+
+# Sphinx documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# MkDocs
+site/
+
+# ─────────────────────────────────────────────────────────────────
+# Project specific (adjust as needed)
+# ─────────────────────────────────────────────────────────────────
+
+# Local configuration overrides (but keep examples)
+concat-config.local.yaml
+config.local.yaml
+
+# User-specific test configurations
+tests/test-config.local.yaml
+
+# Analysis outputs for AI (generated files)
+ai-analysis.txt
+ai-report.txt
+debug.txt
+context.txt
+
+# Performance profiling
+*.prof
+*.stats
+.profiling/
+
+/notes/
+
+# ─────────────────────────────────────────────────────────────────
+# Keep these files/folders
+# ─────────────────────────────────────────────────────────────────
+
+# Keep empty directories with .gitkeep
+!**/.gitkeep
+
+# Keep example/template files
+!.env.example
+!concat-config.example.yaml
+!tests/test-project/**
+
+# Keep documentation
+!*.md
+!LICENSE
+!requirements*.txt
+
+# Keep CI/CD configurations
+!.github/**
+!.gitlab-ci.yml
+!.travis.yml
