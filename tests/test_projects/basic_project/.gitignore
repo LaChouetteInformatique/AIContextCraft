@@ -1,0 +1,3 @@
+# Fichier à ignorer
+ignored_file.txt
+__pycache__/

@@ -1,0 +1,58 @@
+Ce fichier est une concaténation de plusieurs fichiers sources d'un projet.
+Date de génération : 2025-09-09 23:59:15
+Statistiques du contenu : Taille: 1.56 KB (1,602 octets), Tokens (estim.): 244
+
+Arbre du projet : /home/lachouette/utils/ai-context-craft/tests/test_projects/basic_project
+├── .gitignore
+├── app/
+│   └── main.py
+├── config.yaml
+└── utils.py
+
+--------------------------------------------------------------------------------
+CONTENU DES FICHIERS
+--------------------------------------------------------------------------------
+
+
+================================================================================
+--- FICHIER: .gitignore
+================================================================================
+
+# Fichier à ignorer
+ignored_file.txt
+__pycache__/
+
+================================================================================
+--- FICHIER: app/main.py
+================================================================================
+
+# main.py
+import utils
+
+def main():
+    """Ceci est la fonction principale."""
+    print("Hello, World!")
+    utils.helper()
+
+================================================================================
+--- FICHIER: config.yaml
+================================================================================
+
+# Configuration simple pour le test
+include_patterns:
+  - '**/*'
+common_filters:
+  - ".git/"
+  - "build/"
+  - "expected_output.txt"
+  - "*.log"
+# On laisse les .md dans l'arbre pour ce test
+tree_only_filters: []
+================================================================================
+--- FICHIER: utils.py
+================================================================================
+
+# utils.py
+def helper():
+    # Une fonction utilitaire
+    print("Helper function.")

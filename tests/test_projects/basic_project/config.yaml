@@ -1,0 +1,10 @@
+# Configuration simple pour le test
+include_patterns:
+  - '**/*'
+common_filters:
+  - ".git/"
+  - "build/"
+  - "expected_output.txt"
+  - "*.log"
+# On laisse les .md dans l'arbre pour ce test
+tree_only_filters: []
