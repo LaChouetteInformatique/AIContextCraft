@@ -133,22 +133,46 @@ def setup_logging(log_file_path, verbose):
 
 def generate_tree(directory, include_spec, exclude_spec):
     tree_lines = [f"Arbre du projet : {directory.resolve()}"]
+    
     def is_path_visible(path):
-        relative_p = str(path.relative_to(directory))
+        relative_p = str(path.relative_to(directory)).replace('\\', '/')
         return include_spec.match_file(relative_p) and not exclude_spec.match_file(relative_p)
-    paths = sorted([p for p in directory.rglob('*') if is_path_visible(p)])
+
+    # Étape 1 : Obtenir tous les chemins (fichiers ET dossiers) qui correspondent aux filtres
+    visible_paths = {p for p in directory.rglob('*') if is_path_visible(p)}
+
+    # Étape 2 (LA CORRECTION CLÉ) : S'assurer que tous les dossiers parents des
+    # chemins visibles sont également inclus dans l'ensemble à dessiner.
+    paths_for_tree = set(visible_paths)
+    for path in visible_paths:
+        parent = path.parent
+        while parent != directory:
+            paths_for_tree.add(parent)
+            parent = parent.parent
+
+    # Étape 3 : Trier et dessiner l'arbre comme avant
+    paths = sorted(list(paths_for_tree))
+    
     last_in_level = {}
     for path in paths:
         relative_path = path.relative_to(directory)
         depth = len(relative_path.parts)
+        
+        # Pour déterminer si un élément est le dernier, on ne considère que ses "frères"
+        # qui sont aussi dans la liste finale à dessiner.
         try:
-            siblings = [p for p in sorted(path.parent.iterdir()) if is_path_visible(p)]
-            is_last = path.name == siblings[-1].name if siblings else True
-        except IndexError: is_last = True
+            siblings_in_tree = [p for p in sorted(path.parent.iterdir()) if p in paths_for_tree]
+            is_last = (path == siblings_in_tree[-1]) if siblings_in_tree else True
+        except (IndexError, FileNotFoundError):
+            is_last = True
+        
         last_in_level[depth - 1] = is_last
+        
         indent = "".join(["    " if last_in_level.get(i) else "│   " for i in range(depth - 1)])
         connector = "└── " if is_last else "├── "
+        
         tree_lines.append(f"{indent}{connector}{path.name}{'/' if path.is_dir() else ''}")
+
     return "\n".join(tree_lines)
 
 def format_bytes(size):
@@ -257,6 +281,12 @@ def main():
     project_exclude_spec = pathspec.PathSpec.from_lines('gitwildmatch', final_project_filters)
     tree_exclude_spec = pathspec.PathSpec.from_lines('gitwildmatch', final_tree_filters)
 
+    logging.info("="*50)
+    logging.info("CONFIGURATION FINALE DES FILTRES DE DÉBOGAGE")
+    logging.info(f"  - PATTERNS D'INCLUSION: {include_patterns}")
+    logging.info(f"  - FILTRES D'EXCLUSION (CONTENU): {final_project_filters}")
+    logging.info("="*50)
+
     logging.info("Génération de l'arbre du projet...")
     project_tree = generate_tree(project_path, include_spec, tree_exclude_spec)
     
@@ -265,12 +295,32 @@ def main():
     
     logging.info("Étape 1: Sélection des fichiers à inclure...")
     all_potential_files = sorted([p for p in project_path.rglob('*') if p.is_file()])
-    included_files = [p for p in all_potential_files if include_spec.match_file(str(p.relative_to(project_path)))]
+    included_files = [
+        p for p in all_potential_files 
+        if include_spec.match_file(str(p.relative_to(project_path)).replace('\\', '/'))
+    ]
     logging.info(f"{len(included_files)} fichiers correspondent aux patterns d'inclusion.")
 
+    logging.info("--- LISTE DES FICHIERS PASSANT LE FILTRE D'INCLUSION ---")
+    for p in included_files:
+        logging.info(f"  [INCLUS] {str(p.relative_to(project_path)).replace('\\', '/')}")
+    logging.info("--- FIN DE LA LISTE ---")
+
     logging.info("Étape 2: Application des filtres d'exclusion...")
-    final_file_list = [p for p in included_files if not project_exclude_spec.match_file(str(p.relative_to(project_path)))]
+    final_file_list = [
+        p for p in included_files 
+        if not project_exclude_spec.match_file(str(p.relative_to(project_path)).replace('\\', '/'))
+    ]
     logging.info(f"{len(final_file_list)} fichiers restants après exclusion.")
+
+    excluded_files_for_log = set(included_files) - set(final_file_list)
+    logging.info("--- LISTE DES FICHIERS RETIRÉS PAR LE FILTRE D'EXCLUSION ---")
+    if not excluded_files_for_log:
+        logging.info("  (Aucun)")
+    else:
+        for p in sorted(list(excluded_files_for_log)):
+             logging.info(f"  [EXCLUS] {str(p.relative_to(project_path)).replace('\\', '/')}")
+    logging.info("--- FIN DE LA LISTE ---")
 
     for file_path in final_file_list:
         relative_path_str = str(file_path.relative_to(project_path))
