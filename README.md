@@ -40,7 +40,7 @@ Currently, you can run the script directly by cloning the repository.
 # Clone the repository
 git clone https://github.com/your-username/ai-context-craft.git
 cd ai-context-craft
-
+ 
 # (Recommended) Create and activate a virtual environment
 python -m venv venv
 source venv/bin/activate # On Windows, use `venv\Scripts\activate`
