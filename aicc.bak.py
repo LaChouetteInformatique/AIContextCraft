@@ -118,10 +118,7 @@ def get_python_headers(content, full_body_filters_patterns):
 
 def setup_logging(log_file_path, verbose):
     log_file_path.parent.mkdir(parents=True, exist_ok=True)
-    # Correction pour éviter les handlers dupliqués si la fonction est appelée plusieurs fois
     logger = logging.getLogger()
-    if logger.hasHandlers():
-        logger.handlers.clear()
     logger.setLevel(logging.INFO)
     file_handler = logging.FileHandler(log_file_path, mode='w', encoding='utf-8')
     file_handler.setLevel(logging.INFO)
@@ -134,52 +131,37 @@ def setup_logging(log_file_path, verbose):
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
 
-# <<< MODIFICATION : La fonction generate_tree est maintenant optimisée avec os.walk pour élaguer les dossiers exclus.
 def generate_tree(directory, include_spec, exclude_spec):
     tree_lines = [f"Arbre du projet : {directory.resolve()}"]
     
-    paths_for_tree = set()
+    def is_path_visible(path):
+        relative_p = str(path.relative_to(directory)).replace('\\', '/')
+        return include_spec.match_file(relative_p) and not exclude_spec.match_file(relative_p)
 
-    for root, dirs, files in os.walk(directory, topdown=True):
-        root_path = Path(root)
-        
-        # Logique d'élagage : on retire de la liste `dirs` les dossiers à exclure
-        # pour que os.walk ne les visite pas.
-        excluded_dirs = []
-        for d in dirs:
-            dir_path_str = str((root_path / d).relative_to(directory)).replace('\\', '/')
-            if exclude_spec.match_file(dir_path_str) or exclude_spec.match_file(dir_path_str + '/'):
-                excluded_dirs.append(d)
-        
-        for d in excluded_dirs:
-            dirs.remove(d)
+    # Étape 1 : Obtenir tous les chemins (fichiers ET dossiers) qui correspondent aux filtres
+    visible_paths = {p for p in directory.rglob('*') if is_path_visible(p)}
 
-        # On traite les dossiers et fichiers restants
-        for name in dirs + files:
-            item_path = root_path / name
-            relative_p_str = str(item_path.relative_to(directory)).replace('\\', '/')
-            if include_spec.match_file(relative_p_str) and not exclude_spec.match_file(relative_p_str):
-                paths_for_tree.add(item_path)
-
-    # Assurer que les dossiers parents des chemins visibles sont inclus
-    final_paths_for_tree = set(paths_for_tree)
-    for path in paths_for_tree:
+    # Étape 2 (LA CORRECTION CLÉ) : S'assurer que tous les dossiers parents des
+    # chemins visibles sont également inclus dans l'ensemble à dessiner.
+    paths_for_tree = set(visible_paths)
+    for path in visible_paths:
         parent = path.parent
-        while parent and parent != directory:
-            final_paths_for_tree.add(parent)
+        while parent != directory:
+            paths_for_tree.add(parent)
             parent = parent.parent
 
-    # Trier et dessiner l'arbre
-    paths = sorted(list(final_paths_for_tree))
+    # Étape 3 : Trier et dessiner l'arbre comme avant
+    paths = sorted(list(paths_for_tree))
     
     last_in_level = {}
     for path in paths:
-        if path == directory: continue # Ne pas dessiner la racine elle-même dans l'arbre
         relative_path = path.relative_to(directory)
         depth = len(relative_path.parts)
         
+        # Pour déterminer si un élément est le dernier, on ne considère que ses "frères"
+        # qui sont aussi dans la liste finale à dessiner.
         try:
-            siblings_in_tree = [p for p in sorted(path.parent.iterdir()) if p in final_paths_for_tree]
+            siblings_in_tree = [p for p in sorted(path.parent.iterdir()) if p in paths_for_tree]
             is_last = (path == siblings_in_tree[-1]) if siblings_in_tree else True
         except (IndexError, FileNotFoundError):
             is_last = True
@@ -192,7 +174,6 @@ def generate_tree(directory, include_spec, exclude_spec):
         tree_lines.append(f"{indent}{connector}{path.name}{'/' if path.is_dir() else ''}")
 
     return "\n".join(tree_lines)
-# <<< FIN MODIFICATION
 
 def format_bytes(size):
     if size < 1024: return f"{size} B"
@@ -216,7 +197,6 @@ def get_file_stats(content_str, encoding='utf-8'):
 
 def main():
     parser = argparse.ArgumentParser(description="Agrège les fichiers d'un projet en un seul fichier texte pour une IA.")
-    # ... (les arguments n'ont pas changé) ...
     parser.add_argument('-c', '--config', type=str, help="Chemin vers le fichier de configuration YAML.")
     parser.add_argument('-p', '--project', type=str, help="Chemin vers le projet cible.")
     parser.add_argument('-o', '--output', type=str, help="Chemin vers le fichier de sortie.")
@@ -231,14 +211,13 @@ def main():
 
     DEFAULT_CONFIG = {
         'output_path': './build/project_context.txt',
-        'include_patterns': ['**/*'],
+        'include_patterns': ['**/*'], # CORRIGÉ : Pattern récursif par défaut
         'common_filters': ['__pycache__/', '*.pyc', '.git/', '.venv/', 'venv/', 'node_modules/', 'build/', 'dist/', '.idea/', '.vscode/'],
         'project_only_filters': [],
         'tree_only_filters': ['*.md', 'LICENSE', '.gitignore', 'config.yaml'],
         'full_body_filters': ['main', 'run_app', 'settings', 'configure_*']
     }
-    
-    # ... (la logique de configuration n'a pas changé) ...
+
     config = DEFAULT_CONFIG.copy()
     script_dir = Path(__file__).resolve().parent
     config_path = Path(args.config or script_dir / 'config.yaml')
@@ -270,15 +249,16 @@ def main():
 
     logging.info("Assemblage des filtres...")
     def clean_patterns(patterns):
-        if not patterns:
+        if not patterns:  # Gère None et les listes vides
             return []
         return [p for p in patterns if p and p.strip()]
 
+    # On s'assure que même si la clé existe mais est vide (None), on a une liste
     include_patterns = clean_patterns(config.get('include_patterns') or ['**/*'])
     common_filters = clean_patterns(config.get('common_filters') or [])
     project_only_filters = clean_patterns(config.get('project_only_filters') or [])
     tree_only_filters = clean_patterns(config.get('tree_only_filters') or [])
-    full_body_filters = config.get('full_body_filters') or []
+    full_body_filters = config.get('full_body_filters') or [] # Correction ajoutée ici aussi
 
     final_project_filters = common_filters + project_only_filters
     final_tree_filters = common_filters + tree_only_filters
@@ -305,47 +285,42 @@ def main():
     logging.info("CONFIGURATION FINALE DES FILTRES DE DÉBOGAGE")
     logging.info(f"  - PATTERNS D'INCLUSION: {include_patterns}")
     logging.info(f"  - FILTRES D'EXCLUSION (CONTENU): {final_project_filters}")
-    logging.info(f"  - FILTRES D'EXCLUSION (ARBRE): {final_tree_filters}")
     logging.info("="*50)
 
-    logging.info("Génération de l'arbre du projet (version optimisée)...")
+    logging.info("Génération de l'arbre du projet...")
     project_tree = generate_tree(project_path, include_spec, tree_exclude_spec)
     
     print("Concaténation des fichiers...")
     all_files_content = []
     
-    # <<< MODIFICATION : Remplacement de la recherche de fichiers en deux étapes par une seule boucle optimisée.
-    logging.info("Recherche optimisée des fichiers (avec élagage des dossiers exclus)...")
-    final_file_list = []
-    for root, dirs, files in os.walk(project_path, topdown=True):
-        # Élagage des dossiers exclus pour que os.walk ne les visite pas.
-        # On modifie la liste `dirs` en place.
-        excluded_dirs = []
-        for d in dirs:
-            # On vérifie le chemin relatif du dossier. ex: 'node_modules/'
-            dir_path_str = str((Path(root) / d).relative_to(project_path)).replace('\\', '/')
-            if project_exclude_spec.match_file(dir_path_str) or project_exclude_spec.match_file(dir_path_str + '/'):
-                excluded_dirs.append(d)
-        
-        for d in excluded_dirs:
-            dirs.remove(d)
+    logging.info("Étape 1: Sélection des fichiers à inclure...")
+    all_potential_files = sorted([p for p in project_path.rglob('*') if p.is_file()])
+    included_files = [
+        p for p in all_potential_files 
+        if include_spec.match_file(str(p.relative_to(project_path)).replace('\\', '/'))
+    ]
+    logging.info(f"{len(included_files)} fichiers correspondent aux patterns d'inclusion.")
 
-        # Traitement des fichiers dans le dossier courant (qui n'est pas exclus)
-        for filename in files:
-            file_path = Path(root) / filename
-            relative_path_str = str(file_path.relative_to(project_path)).replace('\\', '/')
-            
-            # Un fichier est inclus s'il correspond aux inclusions ET ne correspond PAS aux exclusions.
-            if include_spec.match_file(relative_path_str) and not project_exclude_spec.match_file(relative_path_str):
-                final_file_list.append(file_path)
-
-    final_file_list.sort() # Trier la liste pour un traitement ordonné
-    logging.info(f"{len(final_file_list)} fichiers finaux trouvés après filtrage optimisé.")
-    logging.info("--- LISTE DES FICHIERS À TRAITER ---")
-    for p in final_file_list:
+    logging.info("--- LISTE DES FICHIERS PASSANT LE FILTRE D'INCLUSION ---")
+    for p in included_files:
         logging.info(f"  [INCLUS] {str(p.relative_to(project_path)).replace('\\', '/')}")
     logging.info("--- FIN DE LA LISTE ---")
-    # <<< FIN MODIFICATION
+
+    logging.info("Étape 2: Application des filtres d'exclusion...")
+    final_file_list = [
+        p for p in included_files 
+        if not project_exclude_spec.match_file(str(p.relative_to(project_path)).replace('\\', '/'))
+    ]
+    logging.info(f"{len(final_file_list)} fichiers restants après exclusion.")
+
+    excluded_files_for_log = set(included_files) - set(final_file_list)
+    logging.info("--- LISTE DES FICHIERS RETIRÉS PAR LE FILTRE D'EXCLUSION ---")
+    if not excluded_files_for_log:
+        logging.info("  (Aucun)")
+    else:
+        for p in sorted(list(excluded_files_for_log)):
+             logging.info(f"  [EXCLUS] {str(p.relative_to(project_path)).replace('\\', '/')}")
+    logging.info("--- FIN DE LA LISTE ---")
 
     for file_path in final_file_list:
         relative_path_str = str(file_path.relative_to(project_path))
@@ -353,6 +328,7 @@ def main():
             with open(file_path, 'r', encoding=args.encoding, errors='ignore') as f: content = f.read()
             logging.info(f"  -> Traitement de : {relative_path_str}")
             
+            # CORRIGÉ : Logique de priorité entre --headers-only et --strip-comments
             if args.headers_only and file_path.suffix == '.py':
                 content = get_python_headers(content, full_body_filters)
             elif args.strip_comments:
