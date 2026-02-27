@@ -209,7 +209,10 @@ def get_file_stats(content_str, encoding='utf-8'):
         try:
             encoding_tiktoken = tiktoken.get_encoding("cl100k_base")
             tokens = len(encoding_tiktoken.encode(content_str))
-        except Exception: tokens = "Erreur"
+        except Exception as e:
+            # AJOUT : Affiche l'erreur réelle dans la console pour comprendre
+            logging.error(f"Erreur Tiktoken : {e}") 
+            tokens = "Erreur"
     return f"Taille: {formatted_size} ({total_bytes:,} octets), Tokens (estim.): {tokens}"
 
 # --- Fonction principale ---
