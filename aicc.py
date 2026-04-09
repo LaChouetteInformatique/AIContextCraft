@@ -135,7 +135,7 @@ def setup_logging(log_file_path, verbose):
     logger.addHandler(console_handler)
 
 # <<< MODIFICATION : La fonction generate_tree est maintenant optimisée avec os.walk pour élaguer les dossiers exclus.
-def generate_tree(directory, include_spec, exclude_spec):
+def generate_tree(directory, include_spec, exclude_spec, show_sizes=False):
     tree_lines = [f"Arbre du projet : {directory.resolve()}"]
     
     paths_for_tree = set()
