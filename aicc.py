@@ -189,7 +189,18 @@ def generate_tree(directory, include_spec, exclude_spec):
         indent = "".join(["    " if last_in_level.get(i) else "│   " for i in range(depth - 1)])
         connector = "└── " if is_last else "├── "
         
-        tree_lines.append(f"{indent}{connector}{path.name}{'/' if path.is_dir() else ''}")
+        if path.is_dir():
+            tree_lines.append(f"{indent}{connector}{path.name}/")
+        else:
+            if show_sizes:
+                try:
+                    # Calcul de la taille en Ko
+                    size_kb = path.stat().st_size / 1024.0
+                    tree_lines.append(f"{indent}{connector}{path.name} ({size_kb:.2f} KB)")
+                except OSError:
+                    tree_lines.append(f"{indent}{connector}{path.name} (taille inconnue)")
+            else:
+                tree_lines.append(f"{indent}{connector}{path.name}")
 
     return "\n".join(tree_lines)
 # <<< FIN MODIFICATION
@@ -226,6 +237,7 @@ def main():
     parser.add_argument('--no-timestamp', action='store_true', help="Ne pas ajouter de timestamp au nom du fichier de sortie.")
     parser.add_argument('--strip-comments', action='store_true', help="Supprimer les commentaires des fichiers.")
     parser.add_argument('--headers-only', action='store_true', help="Ne conserver que les signatures de fonctions/méthodes.")
+    parser.add_argument('--tree-only', action='store_true', help="Génère uniquement l'arbre du projet avec le poids des fichiers en Ko, sans leur contenu.")
     parser.add_argument('--dry-run', action='store_true', help="Simule l'opération sans écrire de fichier.")
     parser.add_argument('--encoding', type=str, default='utf-8', help="Encodage des fichiers (défaut: utf-8).")
     parser.add_argument('--use-gitignore', action='store_true', help="Utilise le .gitignore du projet pour filtrer les fichiers.")
@@ -311,8 +323,8 @@ def main():
     logging.info(f"  - FILTRES D'EXCLUSION (ARBRE): {final_tree_filters}")
     logging.info("="*50)
 
-    logging.info("Génération de l'arbre du projet (version optimisée)...")
-    project_tree = generate_tree(project_path, include_spec, tree_exclude_spec)
+    logging.info("Génération de l'arbre du projet...")
+    project_tree = generate_tree(project_path, include_spec, tree_exclude_spec, show_sizes=args.tree_only)
     
     print("Concaténation des fichiers...")
     all_files_content = []
@@ -348,29 +360,35 @@ def main():
     for p in final_file_list:
         logging.info(f"  [INCLUS] {str(p.relative_to(project_path)).replace('\\', '/')}")
     logging.info("--- FIN DE LA LISTE ---")
-    # <<< FIN MODIFICATION
 
-    for file_path in final_file_list:
-        relative_path_str = str(file_path.relative_to(project_path))
-        try:
-            with open(file_path, 'r', encoding=args.encoding, errors='ignore') as f: content = f.read()
-            logging.info(f"  -> Traitement de : {relative_path_str}")
-            
-            if args.headers_only and file_path.suffix == '.py':
-                content = get_python_headers(content, full_body_filters)
-            elif args.strip_comments:
-                content = strip_comments_from_code(content, file_path)
-            
-            header = f"\n{'='*80}\n--- FICHIER: {relative_path_str}\n{'='*80}\n\n"
-            all_files_content.append(header + content)
-        except IOError as e:
-            logging.error(f"  -> ERREUR: Impossible de lire {relative_path_str}. Erreur: {e}")
+    # Lecture des fichiers
+    if not args.tree_only:
+        for file_path in final_file_list:
+            relative_path_str = str(file_path.relative_to(project_path))
+            try:
+                with open(file_path, 'r', encoding=args.encoding, errors='ignore') as f: content = f.read()
+                logging.info(f"  -> Traitement de : {relative_path_str}")
+                
+                if args.headers_only and file_path.suffix == '.py':
+                    content = get_python_headers(content, full_body_filters)
+                elif args.strip_comments:
+                    content = strip_comments_from_code(content, file_path)
+                
+                header = f"\n{'='*80}\n--- FICHIER: {relative_path_str}\n{'='*80}\n\n"
+                all_files_content.append(header + content)
+            except IOError as e:
+                logging.error(f"  -> ERREUR: Impossible de lire {relative_path_str}. Erreur: {e}")
 
-    logging.info("Assemblage du fichier de sortie...")
-    body_content_str = "".join(all_files_content)
-    full_body = project_tree + "\n\n" + "-"*80 + "\nCONTENU DES FICHIERS\n" + "-"*80 + "\n\n" + body_content_str
-    
-    stats = get_file_stats(full_body, args.encoding)
+        logging.info("Assemblage du fichier de sortie...")
+        body_content_str = "".join(all_files_content)
+        full_body = project_tree + "\n\n" + "-"*80 + "\nCONTENU DES FICHIERS\n" + "-"*80 + "\n\n" + body_content_str
+        stats = get_file_stats(full_body, args.encoding)
+    else:
+        # Si on est en mode --tree-only, le corps est juste l'arbre
+        logging.info("Mode --tree-only activé : saut de la lecture du contenu des fichiers.")
+        full_body = project_tree
+        stats = "N/A (Mode arbre uniquement)"
+
     
     final_output_str = "".join([
         "Ce fichier est une concaténation de plusieurs fichiers sources d'un projet.\n",
